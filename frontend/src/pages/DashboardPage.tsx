@@ -6,7 +6,8 @@ import { Modal } from '@/components/ui/modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TaskForm } from '@/components/forms/TaskForm';
 import { TaskCard } from '@/components/forms/TaskCard';
-import type { Task, CreateTaskPayload, UpdateTaskPayload } from '@/types';
+import type { Task, CreateTaskPayload } from '@/types';
+import type { TaskFormData } from '@/utils/validation';
 import { Plus, Search, X } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -28,14 +29,14 @@ export const DashboardPage: React.FC = () => {
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleCreateTask = async (data: CreateTaskPayload) => {
-    await createTask(data);
+  const handleCreateTask = async (data: TaskFormData) => {
+    await createTask(data as CreateTaskPayload);
     setIsCreateModalOpen(false);
   };
 
-  const handleEditTask = async (data: UpdateTaskPayload) => {
+  const handleEditTask = async (data: TaskFormData) => {
     if (!selectedTask) return;
-    await updateTask({ ...data, id: selectedTask.id });
+    await updateTask({ ...(data as CreateTaskPayload), id: selectedTask.id });
     setIsEditModalOpen(false);
     setSelectedTask(null);
   };

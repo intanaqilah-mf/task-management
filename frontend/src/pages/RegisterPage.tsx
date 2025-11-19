@@ -32,7 +32,7 @@ export const RegisterPage: React.FC = () => {
     const result = registerSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof RegisterFormData, string>> = {};
-      result.error.errors.forEach((error) => {
+      result.error.issues.forEach((error) => {
         const field = error.path[0] as keyof RegisterFormData;
         fieldErrors[field] = error.message;
       });

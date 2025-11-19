@@ -1,26 +1,34 @@
-// Enums for Task Management
-export enum TaskStatus {
-  TODO = 'TODO',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-}
+// Task Status Constants
+export const TaskStatus = {
+  TODO: 'TODO',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+} as const;
 
-export enum TaskPriority {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-  URGENT = 'URGENT',
-}
+export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
 
-export enum TaskCategory {
-  WORK = 'WORK',
-  PERSONAL = 'PERSONAL',
-  SHOPPING = 'SHOPPING',
-  HEALTH = 'HEALTH',
-  FINANCE = 'FINANCE',
-  EDUCATION = 'EDUCATION',
-  OTHER = 'OTHER',
-}
+// Task Priority Constants
+export const TaskPriority = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT',
+} as const;
+
+export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];
+
+// Task Category Constants
+export const TaskCategory = {
+  WORK: 'WORK',
+  PERSONAL: 'PERSONAL',
+  SHOPPING: 'SHOPPING',
+  HEALTH: 'HEALTH',
+  FINANCE: 'FINANCE',
+  EDUCATION: 'EDUCATION',
+  OTHER: 'OTHER',
+} as const;
+
+export type TaskCategory = typeof TaskCategory[keyof typeof TaskCategory];
 
 // Task Interface
 export interface Task {

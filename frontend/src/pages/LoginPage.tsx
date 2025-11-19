@@ -30,7 +30,7 @@ export const LoginPage: React.FC = () => {
     const result = loginSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
-      result.error.errors.forEach((error) => {
+      result.error.issues.forEach((error) => {
         const field = error.path[0] as keyof LoginFormData;
         fieldErrors[field] = error.message;
       });

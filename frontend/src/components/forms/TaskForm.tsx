@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,7 +46,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     const result = taskSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof TaskFormData, string>> = {};
-      result.error.errors.forEach((error) => {
+      result.error.issues.forEach((error) => {
         const field = error.path[0] as keyof TaskFormData;
         fieldErrors[field] = error.message;
       });

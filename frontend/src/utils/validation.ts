@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TaskStatus, TaskPriority, TaskCategory } from '@/types';
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -19,9 +18,9 @@ export const registerSchema = z.object({
 export const taskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
   description: z.string().max(1000, 'Description is too long').optional(),
-  status: z.nativeEnum(TaskStatus).optional(),
-  priority: z.nativeEnum(TaskPriority).optional(),
-  category: z.nativeEnum(TaskCategory).optional(),
+  status: z.string().optional(),
+  priority: z.string().optional(),
+  category: z.string().optional(),
   dueDate: z.string().optional(),
 });
 
