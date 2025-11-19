@@ -69,7 +69,7 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: STORAGE_KEYS.THEME,
-      partializeserialize: (state) => ({
+      partialize: (state) => ({
         theme: state.theme,
         isSidebarOpen: state.isSidebarOpen,
       }),
@@ -97,7 +97,7 @@ if (typeof window !== 'undefined') {
   applyTheme(storedTheme);
 
   // Listen for system theme changes
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     const currentTheme = useUIStore.getState().theme;
     if (currentTheme === 'system') {
       applyTheme('system');
