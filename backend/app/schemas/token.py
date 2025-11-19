@@ -1,0 +1,13 @@
+from pydantic import BaseModel
+from typing import Optional
+
+
+class Token(BaseModel):
+    """Token response schema."""
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenData(BaseModel):
+    """Token payload data schema."""
+    email: Optional[str] = None
