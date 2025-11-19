@@ -1,9 +1,5 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
+import { TextInput, Textarea, Select, Button, Group, Stack } from '@mantine/core';
 import { taskSchema, type TaskFormData } from '@/utils/validation';
 import { TaskStatus, TaskPriority, TaskCategory, type Task } from '@/types';
 
@@ -14,12 +10,12 @@ interface TaskFormProps {
   isLoading?: boolean;
 }
 
-export const TaskForm: React.FC<TaskFormProps> = ({
+export const TaskForm = ({
   task,
   onSubmit,
   onCancel,
   isLoading = false,
-}) => {
+}: TaskFormProps) => {
   const [formData, setFormData] = useState<TaskFormData>({
     title: task?.title || '',
     description: task?.description || '',
@@ -30,12 +26,12 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   });
   const [errors, setErrors] = useState<Partial<Record<keyof TaskFormData, string>>>({});
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  const handleChange = (field: keyof TaskFormData) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | string
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
+    const value = typeof e === 'string' ? e : e.target.value;
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,115 +58,96 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="title" required>
-          Title
-        </Label>
-        <Input
-          id="title"
-          name="title"
+    <form onSubmit={handleSubmit}>
+      <Stack gap="md">
+        <TextInput
+          label="Title"
           placeholder="Enter task title"
+          required
           value={formData.title}
-          onChange={handleChange}
+          onChange={handleChange('title')}
           error={errors.title}
           disabled={isLoading}
         />
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
         <Textarea
-          id="description"
-          name="description"
+          label="Description"
           placeholder="Enter task description (optional)"
           value={formData.description}
-          onChange={handleChange}
+          onChange={handleChange('description')}
           error={errors.description}
           disabled={isLoading}
           rows={4}
         />
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
+        <Group grow>
           <Select
-            id="status"
-            name="status"
+            label="Status"
             value={formData.status}
-            onChange={handleChange}
+            onChange={(value) => handleChange('status')(value || TaskStatus.TODO)}
             error={errors.status}
             disabled={isLoading}
-          >
-            <option value={TaskStatus.TODO}>To Do</option>
-            <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
-            <option value={TaskStatus.COMPLETED}>Completed</option>
-          </Select>
-        </div>
+            data={[
+              { value: TaskStatus.TODO, label: 'To Do' },
+              { value: TaskStatus.IN_PROGRESS, label: 'In Progress' },
+              { value: TaskStatus.COMPLETED, label: 'Completed' },
+            ]}
+          />
 
-        <div className="space-y-2">
-          <Label htmlFor="priority">Priority</Label>
           <Select
-            id="priority"
-            name="priority"
+            label="Priority"
             value={formData.priority}
-            onChange={handleChange}
+            onChange={(value) => handleChange('priority')(value || TaskPriority.MEDIUM)}
             error={errors.priority}
             disabled={isLoading}
-          >
-            <option value={TaskPriority.LOW}>Low</option>
-            <option value={TaskPriority.MEDIUM}>Medium</option>
-            <option value={TaskPriority.HIGH}>High</option>
-            <option value={TaskPriority.URGENT}>Urgent</option>
-          </Select>
-        </div>
-      </div>
+            data={[
+              { value: TaskPriority.LOW, label: 'Low' },
+              { value: TaskPriority.MEDIUM, label: 'Medium' },
+              { value: TaskPriority.HIGH, label: 'High' },
+              { value: TaskPriority.URGENT, label: 'Urgent' },
+            ]}
+          />
+        </Group>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="category">Category</Label>
+        <Group grow>
           <Select
-            id="category"
-            name="category"
+            label="Category"
+            placeholder="Select category"
             value={formData.category || ''}
-            onChange={handleChange}
+            onChange={(value) => handleChange('category')(value || '')}
             error={errors.category}
             disabled={isLoading}
-          >
-            <option value="">Select category</option>
-            <option value={TaskCategory.WORK}>Work</option>
-            <option value={TaskCategory.PERSONAL}>Personal</option>
-            <option value={TaskCategory.SHOPPING}>Shopping</option>
-            <option value={TaskCategory.HEALTH}>Health</option>
-            <option value={TaskCategory.FINANCE}>Finance</option>
-            <option value={TaskCategory.EDUCATION}>Education</option>
-            <option value={TaskCategory.OTHER}>Other</option>
-          </Select>
-        </div>
+            clearable
+            data={[
+              { value: TaskCategory.WORK, label: 'Work' },
+              { value: TaskCategory.PERSONAL, label: 'Personal' },
+              { value: TaskCategory.SHOPPING, label: 'Shopping' },
+              { value: TaskCategory.HEALTH, label: 'Health' },
+              { value: TaskCategory.FINANCE, label: 'Finance' },
+              { value: TaskCategory.EDUCATION, label: 'Education' },
+              { value: TaskCategory.OTHER, label: 'Other' },
+            ]}
+          />
 
-        <div className="space-y-2">
-          <Label htmlFor="dueDate">Due Date</Label>
-          <Input
-            id="dueDate"
-            name="dueDate"
+          <TextInput
+            label="Due Date"
             type="date"
             value={formData.dueDate}
-            onChange={handleChange}
+            onChange={handleChange('dueDate')}
             error={errors.dueDate}
             disabled={isLoading}
           />
-        </div>
-      </div>
+        </Group>
 
-      <div className="flex gap-3 pt-4">
-        <Button type="submit" className="flex-1" isLoading={isLoading} disabled={isLoading}>
-          {task ? 'Update Task' : 'Create Task'}
-        </Button>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Cancel
-        </Button>
-      </div>
+        <Group grow mt="md">
+          <Button type="submit" loading={isLoading} disabled={isLoading}>
+            {task ? 'Update Task' : 'Create Task'}
+          </Button>
+          <Button variant="default" onClick={onCancel} disabled={isLoading}>
+            Cancel
+          </Button>
+        </Group>
+      </Stack>
     </form>
   );
 };

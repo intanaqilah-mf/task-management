@@ -8,6 +8,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, User as UserSchema
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.config import settings
+from app.api.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -81,7 +82,16 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 
 @router.get("/me", response_model=UserSchema)
-def get_current_user_info(current_user: User = Depends()):
+def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information."""
-    from app.api.dependencies import get_current_user
     return current_user
+
+
+@router.post("/logout")
+def logout():
+    """
+    Logout endpoint (client-side handles token removal).
+
+    This is a placeholder endpoint since JWT logout is handled client-side.
+    """
+    return {"message": "Logged out successfully"}

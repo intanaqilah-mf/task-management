@@ -9,8 +9,9 @@ class UserBase(BaseModel):
     username: Optional[str] = None
 
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
     """Schema for user registration."""
+    email: EmailStr
     password: str = Field(..., min_length=6, description="Password must be at least 6 characters")
     name: Optional[str] = None
 
