@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { TaskListPage } from './pages/TaskListPage';
 import { TaskDetailPage } from './pages/TaskDetailPage';
 import { CreateTaskPage } from './pages/CreateTaskPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 
 export const router = createBrowserRouter([
   {
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
       {
         path: 'tasks/:id',
         element: <TaskDetailPage />,
+      },
+      {
+        path: 'analytics',
+        element: <AnalyticsPage />,
       },
     ],
   },
