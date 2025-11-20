@@ -28,7 +28,6 @@ export const TaskListPage = () => {
   const [editingTask, setEditingTask] = useState<any>(null);
   const [selectedPriority, setSelectedPriority] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -234,11 +233,6 @@ export const TaskListPage = () => {
   // Apply priority filter
   if (selectedPriority) {
     filteredTasks = filteredTasks.filter(t => t.priority === selectedPriority);
-  }
-
-  // Apply status filter
-  if (selectedStatus) {
-    filteredTasks = filteredTasks.filter(t => t.status === selectedStatus);
   }
 
   // Apply search filter

@@ -155,19 +155,6 @@ export const DashboardPage = () => {
     setTaskToDelete(null);
   };
 
-  // Helper function to get current date in Malaysia timezone
-  const getMalaysiaDate = () => {
-    const now = new Date();
-    const malaysiaDateStr = now.toLocaleDateString('en-US', {
-      timeZone: BASE_CONSTANTS.MALAYSIA_TIMEZONE,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const [month, day, year] = malaysiaDateStr.split('/');
-    return `${year}-${month}-${day}`;
-  };
-
   // Helper function to get priority badge color
   const getPriorityColor = (priority: string) => {
     switch (priority) {

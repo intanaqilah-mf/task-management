@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { AppShell, Burger, Group, Text, NavLink, Avatar, Menu, ActionIcon, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDashboard, IconLogout, IconUser, IconChevronDown, IconSun, IconMoon } from '@tabler/icons-react';
+import { IconDashboard, IconLogout, IconUser, IconSun, IconMoon } from '@tabler/icons-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export const MainLayout = () => {

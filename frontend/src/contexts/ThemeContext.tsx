@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { MantineColorScheme } from '@mantine/core';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type { MantineColorScheme } from '@mantine/core';
 
 interface ThemeContextType {
   colorScheme: MantineColorScheme;
