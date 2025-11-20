@@ -22,6 +22,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTasks } from '@/hooks/useTasks';
 import { subtaskService } from '@/services/subtask.service';
 import type { TaskCategory } from '@/types';
+import { BASE_CONSTANTS, parseDateInMalaysiaTimezone } from '@/constants/base.constant';
 
 interface SubTask {
   id?: number;
@@ -36,6 +37,42 @@ export const TaskDetailPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const task = tasks.find((t) => String(t.id) === id);
+
+  // Helper function to get priority badge color
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'URGENT':
+        return 'red';
+      case 'HIGH':
+        return 'orange';
+      case 'MEDIUM':
+        return 'yellow';
+      case 'LOW':
+        return 'gray';
+      default:
+        return 'blue';
+    }
+  };
+
+  // Helper function to get category badge color
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'WORK':
+        return 'violet';
+      case 'PERSONAL':
+        return 'green';
+      case 'SHOPPING':
+        return 'yellow';
+      case 'HEALTH':
+        return 'pink';
+      case 'FINANCE':
+        return 'teal';
+      case 'EDUCATION':
+        return 'blue';
+      default:
+        return 'gray';
+    }
+  };
 
   // Get subtasks from task - MUST be declared before any early returns
   const [subtasks, setSubtasks] = useState(task?.subtasks || []);
@@ -205,11 +242,13 @@ export const TaskDetailPage = () => {
           <Badge variant="light" size="lg" color="blue">
             {task.status.replace('_', ' ')}
           </Badge>
-          <Badge variant="light" size="lg" color="violet">
-            {task.priority}
-          </Badge>
+          {task.priority && (
+            <Badge variant="light" size="lg" color={getPriorityColor(task.priority)}>
+              {task.priority}
+            </Badge>
+          )}
           {task.category && (
-            <Badge variant="outline" size="lg">
+            <Badge variant="light" size="lg" color={getCategoryColor(task.category)}>
               {task.category}
             </Badge>
           )}
@@ -222,10 +261,11 @@ export const TaskDetailPage = () => {
                 radius="md"
                 color="violet"
               >
-                {new Date(task.dueDate).toLocaleDateString('en-US', {
+                {parseDateInMalaysiaTimezone(typeof task.dueDate === 'string' ? task.dueDate : task.dueDate).toLocaleDateString('en-US', {
                   month: 'long',
                   day: 'numeric',
                   year: 'numeric',
+                  timeZone: BASE_CONSTANTS.MALAYSIA_TIMEZONE,
                 })}
               </Badge>
               <Badge
@@ -238,6 +278,7 @@ export const TaskDetailPage = () => {
                 {new Date(task.dueDate).toLocaleTimeString('en-US', {
                   hour: '2-digit',
                   minute: '2-digit',
+                  timeZone: BASE_CONSTANTS.MALAYSIA_TIMEZONE,
                 })}
               </Badge>
             </>

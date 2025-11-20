@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Container, Title, Tabs, Card, Group, Text, Badge, Stack, ActionIcon, Modal, TextInput, Textarea, Select, Divider, Button } from '@mantine/core';
-import { IconClock, IconChevronLeft, IconCheck, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconClock, IconChevronLeft, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { CreateTaskModal } from '@/components/modals/CreateTaskModal';
 import type { TaskCategory } from '@/types';
+import { BASE_CONSTANTS, parseDateInMalaysiaTimezone } from '@/constants/base.constant';
 
 interface SubTask {
   id?: number;
@@ -21,6 +22,42 @@ export const TaskListPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
+
+  // Helper function to get priority badge color
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'URGENT':
+        return 'red';
+      case 'HIGH':
+        return 'orange';
+      case 'MEDIUM':
+        return 'yellow';
+      case 'LOW':
+        return 'gray';
+      default:
+        return 'blue';
+    }
+  };
+
+  // Helper function to get category badge color
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'WORK':
+        return 'violet';
+      case 'PERSONAL':
+        return 'green';
+      case 'SHOPPING':
+        return 'yellow';
+      case 'HEALTH':
+        return 'pink';
+      case 'FINANCE':
+        return 'teal';
+      case 'EDUCATION':
+        return 'blue';
+      default:
+        return 'gray';
+    }
+  };
 
   // Edit form state
   const [editTitle, setEditTitle] = useState('');
@@ -123,7 +160,7 @@ export const TaskListPage = () => {
 
   // Get date from URL parameter or use today
   const dateParam = searchParams.get('date');
-  const targetDate = dateParam ? new Date(dateParam) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDate = dateParam ? parseDateInMalaysiaTimezone(dateParam) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const targetDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 
   // Get tasks for the target date (from URL or today)
@@ -273,9 +310,25 @@ export const TaskListPage = () => {
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit',
+                    timeZone: BASE_CONSTANTS.MALAYSIA_TIMEZONE,
                   })
                 : 'No due date'}
             </Text>
+            {totalSubtasks > 0 && (
+              <Badge variant="light" color="violet" leftSection="📋">
+                {completedCount}/{totalSubtasks}
+              </Badge>
+            )}
+            {task.priority && (
+              <Badge variant="light" color={getPriorityColor(task.priority)}>
+                {task.priority}
+              </Badge>
+            )}
+            {task.category && (
+              <Badge variant="light" color={getCategoryColor(task.category)}>
+                {task.category}
+              </Badge>
+            )}
           </Group>
 
           <Group gap="xs">
@@ -306,36 +359,11 @@ export const TaskListPage = () => {
         <Title
           order={4}
           size="h5"
-          mb="sm"
           c={isCompleted ? 'dimmed' : 'inherit'}
           td={isCompleted ? 'line-through' : 'none'}
         >
           {task.title}
         </Title>
-
-        <Group gap="sm">
-          <Badge variant="light" color="violet" leftSection="📋">
-            {completedCount}/{totalSubtasks}
-          </Badge>
-          <Badge variant="light" color="violet" leftSection="💬">
-            12
-          </Badge>
-          <ActionIcon
-            size="xl"
-            radius="xl"
-            variant="light"
-            color={isCompleted ? 'green' : 'violet'}
-            style={{ marginLeft: 'auto' }}
-          >
-            {isCompleted ? (
-              <IconCheck size={20} />
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" />
-              </svg>
-            )}
-          </ActionIcon>
-        </Group>
       </Card>
     );
   };
@@ -375,15 +403,23 @@ export const TaskListPage = () => {
             <IconChevronLeft size={24} />
           </ActionIcon>
           <Title order={2} size="h2" fw={600}>
-            Tasks
+            {(() => {
+              const today = new Date();
+              const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+              if (targetDateStr === todayStr) {
+                return 'Today';
+              }
+
+              return targetDate.toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+                timeZone: BASE_CONSTANTS.MALAYSIA_TIMEZONE,
+              });
+            })()}
           </Title>
-          <ActionIcon variant="subtle" size="lg">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
-              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-              <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
-            </svg>
-          </ActionIcon>
+          <div style={{ width: '40px' }} />
         </Group>
 
         {/* Category Cards */}

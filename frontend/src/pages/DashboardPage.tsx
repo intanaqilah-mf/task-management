@@ -8,25 +8,167 @@ import {
   Group,
   Stack,
   Badge,
-  Avatar,
   ActionIcon,
   Paper,
+  Modal,
+  TextInput,
+  Textarea,
+  Select,
+  Divider,
 } from '@mantine/core';
 import {
   IconPlus,
   IconClock,
   IconChevronRight,
-  IconCheck,
+  IconTrash,
 } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { CreateTaskModal } from '@/components/modals/CreateTaskModal';
+import type { TaskCategory } from '@/types';
+import { BASE_CONSTANTS, parseDateInMalaysiaTimezone } from '@/constants/base.constant';
+
+interface SubTask {
+  id?: number;
+  title: string;
+  completed?: boolean;
+}
 
 export const DashboardPage = () => {
-  const { tasks, createTask } = useTasks();
+  const { tasks, createTask, updateTask, deleteTask } = useTasks();
   const navigate = useNavigate();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
+
+  // Edit form state
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState<TaskCategory | ''>('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editSubTasks, setEditSubTasks] = useState<SubTask[]>([]);
+  const [newSubTask, setNewSubTask] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleOpenEditModal = (task: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingTask(task);
+    setEditTitle(task.title);
+    setEditCategory(task.category || '');
+    setEditDueDate(task.dueDate ? (typeof task.dueDate === 'string' ? task.dueDate.split('T')[0] : task.dueDate) : '');
+    setEditStartTime(task.startTime || '');
+    setEditEndTime(task.endTime || '');
+    setEditNotes(task.description || '');
+    setEditSubTasks(task.subtasks || []);
+    setIsEditModalOpen(true);
+  };
+
+  const handleAddSubTask = () => {
+    if (newSubTask.trim()) {
+      setEditSubTasks([...editSubTasks, { title: newSubTask, completed: false }]);
+      setNewSubTask('');
+    }
+  };
+
+  const handleRemoveSubTask = (index: number) => {
+    setEditSubTasks(editSubTasks.filter((_, i) => i !== index));
+  };
+
+  const handleEditTaskSubmit = async () => {
+    if (!editingTask) return;
+    setIsSubmitting(true);
+    try {
+      await updateTask({
+        id: editingTask.id,
+        title: editTitle,
+        description: editNotes,
+        category: (editCategory as TaskCategory) || undefined,
+        dueDate: editDueDate ? `${editDueDate}T00:00:00` : undefined,
+        startTime: editStartTime,
+        endTime: editEndTime,
+        status: editingTask.status,
+        priority: editingTask.priority,
+        subtasks: editSubTasks.map(st => ({
+          title: st.title,
+          completed: st.completed || false
+        })),
+      });
+      setIsEditModalOpen(false);
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Error updating task:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingTask(null);
+    setNewSubTask('');
+    setIsSubmitting(false);
+  };
+
+  const handleDeleteTask = async (taskId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteTask(String(taskId));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  // Helper function to get current date in Malaysia timezone
+  const getMalaysiaDate = () => {
+    const now = new Date();
+    const malaysiaDateStr = now.toLocaleDateString('en-US', {
+      timeZone: BASE_CONSTANTS.MALAYSIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const [month, day, year] = malaysiaDateStr.split('/');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Helper function to get priority badge color
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'URGENT':
+        return 'red';
+      case 'HIGH':
+        return 'orange';
+      case 'MEDIUM':
+        return 'yellow';
+      case 'LOW':
+        return 'gray';
+      default:
+        return 'blue';
+    }
+  };
+
+  // Helper function to get category badge color
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'WORK':
+        return 'violet';
+      case 'PERSONAL':
+        return 'green';
+      case 'SHOPPING':
+        return 'yellow';
+      case 'HEALTH':
+        return 'pink';
+      case 'FINANCE':
+        return 'teal';
+      case 'EDUCATION':
+        return 'blue';
+      default:
+        return 'gray';
+    }
+  };
 
   const handleCreateTask = async (taskData: any) => {
     try {
@@ -150,11 +292,12 @@ export const DashboardPage = () => {
 
     // Group by date
     const grouped = upcomingTasks.reduce((acc, task) => {
-      const dueDateStr = typeof task.dueDate === 'string' ? task.dueDate!.split('T')[0] : task.dueDate!;
-      const date = new Date(dueDateStr).toLocaleDateString('en-US', {
+      const dueDateStr = typeof task.dueDate === 'string' ? task.dueDate! : task.dueDate!;
+      const date = parseDateInMalaysiaTimezone(dueDateStr).toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
+        timeZone: BASE_CONSTANTS.MALAYSIA_TIMEZONE,
       });
       if (!acc[date]) acc[date] = [];
       acc[date].push(task);
@@ -270,35 +413,56 @@ export const DashboardPage = () => {
                   <Text size="sm" c="dimmed">
                     {formatTimeRange(getClosestTask()!.startTime, getClosestTask()!.endTime)}
                   </Text>
+                  {(() => {
+                    const task = getClosestTask()!;
+                    const completedCount = task.subtasks?.filter((s: any) => s.completed).length || 0;
+                    const totalSubtasks = task.subtasks?.length || 0;
+                    return totalSubtasks > 0 ? (
+                      <Badge variant="light" color="violet" leftSection="📋">
+                        {completedCount}/{totalSubtasks}
+                      </Badge>
+                    ) : null;
+                  })()}
+                  {getClosestTask()!.priority && (
+                    <Badge variant="light" color={getPriorityColor(getClosestTask()!.priority!)}>
+                      {getClosestTask()!.priority}
+                    </Badge>
+                  )}
+                  {getClosestTask()!.category && (
+                    <Badge variant="light" color={getCategoryColor(getClosestTask()!.category!)}>
+                      {getClosestTask()!.category}
+                    </Badge>
+                  )}
                 </Group>
-                <Avatar.Group>
-                  <Avatar color="blue" radius="xl" size="sm">
-                    U
-                  </Avatar>
-                  <Avatar color="orange" radius="xl" size="sm">
-                    A
-                  </Avatar>
-                  <Avatar color="pink" radius="xl" size="sm">
-                    B
-                  </Avatar>
-                </Avatar.Group>
+
+                <Group gap="xs">
+                  <ActionIcon
+                    size="md"
+                    radius="md"
+                    variant="subtle"
+                    color="blue"
+                    onClick={(e) => handleOpenEditModal(getClosestTask()!, e)}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </ActionIcon>
+                  <ActionIcon
+                    size="md"
+                    radius="md"
+                    variant="subtle"
+                    color="red"
+                    onClick={(e) => handleDeleteTask(getClosestTask()!.id, e)}
+                  >
+                    <IconTrash size={16} />
+                  </ActionIcon>
+                </Group>
               </Group>
 
-              <Title order={4} size="h5" mb="md">
+              <Title order={4} size="h5">
                 {getClosestTask()!.title}
               </Title>
-
-              <Group gap="sm">
-                <Group gap={4}>
-                  <IconClock size={14} color="#8B5CF6" />
-                  <Text size="xs" c="dimmed">
-                    Tuesday
-                  </Text>
-                </Group>
-                <ActionIcon variant="subtle" size="sm" color="gray">
-                  <IconChevronRight size={14} />
-                </ActionIcon>
-              </Group>
             </Card>
           </div>
         )}
@@ -342,53 +506,56 @@ export const DashboardPage = () => {
                       >
                         {formatTimeRange(task.startTime, task.endTime)}
                       </Text>
+                      {totalSubtasks > 0 && (
+                        <Badge variant="light" color="violet" leftSection="📋">
+                          {completedCount}/{totalSubtasks}
+                        </Badge>
+                      )}
+                      {task.priority && (
+                        <Badge variant="light" color={getPriorityColor(task.priority)}>
+                          {task.priority}
+                        </Badge>
+                      )}
+                      {task.category && (
+                        <Badge variant="light" color={getCategoryColor(task.category)}>
+                          {task.category}
+                        </Badge>
+                      )}
                     </Group>
-                    <Avatar.Group>
-                      <Avatar color="blue" radius="xl" size="sm">
-                        U
-                      </Avatar>
-                      <Avatar color="green" radius="xl" size="sm">
-                        A
-                      </Avatar>
-                      <Avatar color="purple" radius="xl" size="sm">
-                        B
-                      </Avatar>
-                    </Avatar.Group>
+
+                    <Group gap="xs">
+                      <ActionIcon
+                        size="md"
+                        radius="md"
+                        variant="subtle"
+                        color="blue"
+                        onClick={(e) => handleOpenEditModal(task, e)}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </ActionIcon>
+                      <ActionIcon
+                        size="md"
+                        radius="md"
+                        variant="subtle"
+                        color="red"
+                        onClick={(e) => handleDeleteTask(task.id, e)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Group>
                   </Group>
 
                   <Title
                     order={4}
                     size="h5"
-                    mb="md"
                     c={isCompleted ? 'dimmed' : 'inherit'}
                     td={isCompleted ? 'line-through' : 'none'}
                   >
                     {task.title}
                   </Title>
-
-                  <Group gap="sm">
-                    <Badge variant="light" color="violet" leftSection="📋">
-                      {completedCount}/{totalSubtasks}
-                    </Badge>
-                    <Badge variant="light" color="violet" leftSection="💬">
-                      12
-                    </Badge>
-                    <ActionIcon
-                      size="xl"
-                      radius="xl"
-                      variant="light"
-                      color={isCompleted ? 'green' : 'violet'}
-                      style={{ marginLeft: 'auto' }}
-                    >
-                      {isCompleted ? (
-                        <IconCheck size={20} />
-                      ) : (
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                          <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" />
-                        </svg>
-                      )}
-                    </ActionIcon>
-                  </Group>
                 </Card>
               );
             })}
@@ -412,11 +579,7 @@ export const DashboardPage = () => {
         {Object.entries(getUpcomingTasksByDate()).map(([date, dateTasks]) => (
           <div key={date}>
             <Title order={2} size="h3" mb="md">
-              {new Date(date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {date}
             </Title>
 
             <Stack gap="md">
@@ -450,55 +613,61 @@ export const DashboardPage = () => {
                           c="dimmed"
                           td={isCompleted ? 'line-through' : 'none'}
                         >
-                          {formatTimeRange(task.startTime, task.endTime)}
+                          {parseDateInMalaysiaTimezone(typeof task.dueDate === 'string' ? task.dueDate : task.dueDate!).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            timeZone: BASE_CONSTANTS.MALAYSIA_TIMEZONE,
+                          })}, {formatTimeRange(task.startTime, task.endTime)}
                         </Text>
+                        {totalSubtasks > 0 && (
+                          <Badge variant="light" color="violet" leftSection="📋">
+                            {completedCount}/{totalSubtasks}
+                          </Badge>
+                        )}
+                        {task.priority && (
+                          <Badge variant="light" color={getPriorityColor(task.priority)}>
+                            {task.priority}
+                          </Badge>
+                        )}
+                        {task.category && (
+                          <Badge variant="light" color={getCategoryColor(task.category)}>
+                            {task.category}
+                          </Badge>
+                        )}
                       </Group>
-                      <Avatar.Group>
-                        <Avatar color="blue" radius="xl" size="sm">
-                          U
-                        </Avatar>
-                        <Avatar color="green" radius="xl" size="sm">
-                          A
-                        </Avatar>
-                      </Avatar.Group>
+
+                      <Group gap="xs">
+                        <ActionIcon
+                          size="md"
+                          radius="md"
+                          variant="subtle"
+                          color="blue"
+                          onClick={(e) => handleOpenEditModal(task, e)}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </ActionIcon>
+                        <ActionIcon
+                          size="md"
+                          radius="md"
+                          variant="subtle"
+                          color="red"
+                          onClick={(e) => handleDeleteTask(task.id, e)}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Group>
                     </Group>
 
                     <Title
                       order={4}
                       size="h5"
-                      mb="md"
                       c={isCompleted ? 'dimmed' : 'inherit'}
                       td={isCompleted ? 'line-through' : 'none'}
                     >
                       {task.title}
                     </Title>
-
-                    <Group gap="sm">
-                      <Badge variant="light" color="violet" leftSection="📋">
-                        {completedCount}/{totalSubtasks}
-                      </Badge>
-                      <Badge variant="light" color="violet">
-                        {task.category}
-                      </Badge>
-                      <Badge variant="light" color="blue">
-                        {task.priority}
-                      </Badge>
-                      <ActionIcon
-                        size="xl"
-                        radius="xl"
-                        variant="light"
-                        color={isCompleted ? 'green' : 'violet'}
-                        style={{ marginLeft: 'auto' }}
-                      >
-                        {isCompleted ? (
-                          <IconCheck size={20} />
-                        ) : (
-                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" />
-                          </svg>
-                        )}
-                      </ActionIcon>
-                    </Group>
                   </Card>
                 );
               })}
@@ -517,6 +686,173 @@ export const DashboardPage = () => {
       onClose={() => setIsCreateModalOpen(false)}
       onSubmit={handleCreateTask}
     />
+
+    {/* Edit Task Modal */}
+    <Modal
+      opened={isEditModalOpen}
+      onClose={handleCloseEditModal}
+      title={
+        <Text size="lg" fw={600}>
+          Edit Task
+        </Text>
+      }
+      size="md"
+      styles={{
+        inner: {
+          paddingTop: '2rem',
+        },
+        header: {
+          paddingBottom: '1rem',
+        },
+        body: {
+          paddingTop: 0,
+          paddingBottom: '2rem',
+          maxHeight: 'calc(100vh - 200px)',
+          overflowY: 'auto',
+        },
+      }}
+    >
+      <Stack gap="md">
+        {/* Task Title */}
+        <TextInput
+          label="Task Title"
+          placeholder="Research and Planning"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          required
+          styles={{
+            label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+          }}
+        />
+
+        {/* Project Folder (Category) */}
+        <Select
+          label="Project Folder"
+          placeholder="Select category"
+          value={editCategory}
+          onChange={(value) => setEditCategory((value as TaskCategory) || '')}
+          data={[
+            { value: 'PERSONAL', label: 'Personal' },
+            { value: 'WORK', label: 'Work' },
+            { value: 'SHOPPING', label: 'Business' },
+          ]}
+          styles={{
+            label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+          }}
+        />
+
+        {/* Due Date */}
+        <TextInput
+          label="Due Date"
+          type="date"
+          placeholder="Pick date"
+          value={editDueDate}
+          onChange={(e) => setEditDueDate(e.target.value)}
+          styles={{
+            label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+          }}
+        />
+
+        {/* Time Range */}
+        <Group grow>
+          <TextInput
+            label="Start Time"
+            type="time"
+            value={editStartTime}
+            onChange={(e) => setEditStartTime(e.target.value)}
+            styles={{
+              label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+            }}
+          />
+
+          <TextInput
+            label="End Time"
+            type="time"
+            value={editEndTime}
+            onChange={(e) => setEditEndTime(e.target.value)}
+            styles={{
+              label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+            }}
+          />
+        </Group>
+
+        {/* Notes */}
+        <Textarea
+          label="Notes"
+          placeholder="Gather insights on user needs, market trends..."
+          value={editNotes}
+          onChange={(e) => setEditNotes(e.target.value)}
+          minRows={3}
+          styles={{
+            label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+          }}
+        />
+
+        <Divider />
+
+        {/* Task List (Subtasks) */}
+        <div>
+          <Text size="sm" fw={500} mb="sm">
+            Task List
+          </Text>
+
+          {/* Existing Subtasks */}
+          <Stack gap="xs" mb="sm">
+            {editSubTasks.map((subTask, index) => (
+              <Group key={index} justify="space-between" wrap="nowrap">
+                <Text size="sm" style={{ flex: 1 }}>
+                  {subTask.title}
+                </Text>
+                <ActionIcon
+                  size="sm"
+                  color="red"
+                  variant="subtle"
+                  onClick={() => handleRemoveSubTask(index)}
+                >
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </Group>
+            ))}
+          </Stack>
+
+          {/* Add New Subtask */}
+          <Group gap="xs" wrap="nowrap">
+            <TextInput
+              placeholder="Add new subtask..."
+              value={newSubTask}
+              onChange={(e) => setNewSubTask(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddSubTask();
+                }
+              }}
+              style={{ flex: 1 }}
+            />
+            <ActionIcon
+              size="lg"
+              color="violet"
+              variant="light"
+              onClick={handleAddSubTask}
+            >
+              <IconPlus size={18} />
+            </ActionIcon>
+          </Group>
+        </div>
+
+        {/* Submit Button */}
+        <Button
+          fullWidth
+          size="lg"
+          color="violet"
+          onClick={handleEditTaskSubmit}
+          disabled={!editTitle.trim() || isSubmitting}
+          loading={isSubmitting}
+          mt="md"
+        >
+          Update Task
+        </Button>
+      </Stack>
+    </Modal>
   </>
   );
 };
