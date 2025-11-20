@@ -34,6 +34,7 @@ class TaskUpdate(BaseModel):
     due_date: Optional[datetime] = Field(None, alias="dueDate")
     start_time: Optional[str] = Field(None, alias="startTime")
     end_time: Optional[str] = Field(None, alias="endTime")
+    subtasks: Optional[List[SubTaskCreate]] = None
 
     class Config:
         populate_by_name = True

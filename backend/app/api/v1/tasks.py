@@ -125,25 +125,41 @@ def update_task(
 ):
     """
     Update a task.
-    
+
     Only updates fields that are provided in the request.
     """
     task = db.query(Task).filter(
         Task.id == task_id,
         Task.user_id == current_user.id
     ).first()
-    
+
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found"
         )
-    
-    # Update only provided fields
+
+    # Extract subtasks before updating task
     update_data = task_data.dict(exclude_unset=True)
+    subtasks_data = update_data.pop('subtasks', None)
+
+    # Update task fields
     for field, value in update_data.items():
         setattr(task, field, value)
-    
+
+    # Handle subtasks if provided
+    if subtasks_data is not None:
+        # Delete all existing subtasks
+        db.query(SubTask).filter(SubTask.task_id == task_id).delete()
+
+        # Create new subtasks
+        for subtask_data in subtasks_data:
+            db_subtask = SubTask(
+                **subtask_data,
+                task_id=task_id
+            )
+            db.add(db_subtask)
+
     db.commit()
     db.refresh(task)
     return task

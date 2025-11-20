@@ -1,17 +1,37 @@
 import { useState } from 'react';
-import { Container, Title, Tabs, Card, Group, Text, Badge, Avatar, Stack, ActionIcon } from '@mantine/core';
-import { IconClock, IconChevronLeft, IconCheck } from '@tabler/icons-react';
+import { Container, Title, Tabs, Card, Group, Text, Badge, Stack, ActionIcon, Modal, TextInput, Textarea, Select, Divider, Button } from '@mantine/core';
+import { IconClock, IconChevronLeft, IconCheck, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { CreateTaskModal } from '@/components/modals/CreateTaskModal';
+import type { TaskCategory } from '@/types';
+
+interface SubTask {
+  id?: number;
+  title: string;
+  completed?: boolean;
+}
 
 export const TaskListPage = () => {
-  const { tasks, createTask } = useTasks();
+  const { tasks, createTask, updateTask, deleteTask } = useTasks();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
+
+  // Edit form state
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState<TaskCategory | ''>('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editSubTasks, setEditSubTasks] = useState<SubTask[]>([]);
+  const [newSubTask, setNewSubTask] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCreateTask = async (taskData: any) => {
     try {
@@ -29,6 +49,72 @@ export const TaskListPage = () => {
       setIsCreateModalOpen(false);
     } catch (error) {
       console.error('Failed to create task:', error);
+    }
+  };
+
+  const handleOpenEditModal = (task: any) => {
+    setEditingTask(task);
+    setEditTitle(task.title);
+    setEditCategory(task.category || '');
+    setEditDueDate(task.dueDate ? (typeof task.dueDate === 'string' ? task.dueDate.split('T')[0] : task.dueDate) : '');
+    setEditStartTime(task.startTime || '');
+    setEditEndTime(task.endTime || '');
+    setEditNotes(task.description || '');
+    setEditSubTasks(task.subtasks || []);
+    setIsEditModalOpen(true);
+  };
+
+  const handleAddSubTask = () => {
+    if (newSubTask.trim()) {
+      setEditSubTasks([...editSubTasks, { title: newSubTask, completed: false }]);
+      setNewSubTask('');
+    }
+  };
+
+  const handleRemoveSubTask = (index: number) => {
+    setEditSubTasks(editSubTasks.filter((_, i) => i !== index));
+  };
+
+  const handleEditTask = async () => {
+    if (!editingTask) return;
+    setIsSubmitting(true);
+    try {
+      await updateTask({
+        id: editingTask.id,
+        title: editTitle,
+        description: editNotes,
+        category: (editCategory as TaskCategory) || undefined,
+        dueDate: editDueDate ? `${editDueDate}T00:00:00` : undefined,
+        startTime: editStartTime,
+        endTime: editEndTime,
+        status: editingTask.status,
+        priority: editingTask.priority,
+        subtasks: editSubTasks.map(st => ({
+          title: st.title,
+          completed: st.completed || false
+        })),
+      });
+      setIsEditModalOpen(false);
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Error updating task:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingTask(null);
+    setNewSubTask('');
+    setIsSubmitting(false);
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    try {
+      await deleteTask(String(taskId));
+    } catch (error) {
+      console.error('Error deleting task:', error);
     }
   };
 
@@ -144,6 +230,20 @@ export const TaskListPage = () => {
     const completedCount = task.subtasks?.filter((s: any) => s.completed).length || 0;
     const totalSubtasks = task.subtasks?.length || 0;
 
+    const handleCardClick = () => {
+      navigate(`/tasks/${task.id}`);
+    };
+
+    const handleEdit = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      handleOpenEditModal(task);
+    };
+
+    const handleDelete = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      handleDeleteTask(task.id);
+    };
+
     return (
       <Card
         p="lg"
@@ -153,8 +253,9 @@ export const TaskListPage = () => {
           cursor: 'pointer',
           opacity: isCompleted ? 0.6 : 1,
           backgroundColor: isCompleted ? '#f5f5f5' : 'white',
+          position: 'relative',
         }}
-        onClick={() => navigate(`/tasks/${task.id}`)}
+        onClick={handleCardClick}
       >
         <Group justify="space-between" mb="sm">
           <Group gap="xs">
@@ -176,17 +277,30 @@ export const TaskListPage = () => {
                 : 'No due date'}
             </Text>
           </Group>
-          <Avatar.Group>
-            <Avatar color="blue" radius="xl" size="sm">
-              U
-            </Avatar>
-            <Avatar color="orange" radius="xl" size="sm">
-              A
-            </Avatar>
-            <Avatar color="pink" radius="xl" size="sm">
-              B
-            </Avatar>
-          </Avatar.Group>
+
+          <Group gap="xs">
+            <ActionIcon
+              size="md"
+              radius="md"
+              variant="subtle"
+              color="blue"
+              onClick={handleEdit}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </ActionIcon>
+            <ActionIcon
+              size="md"
+              radius="md"
+              variant="subtle"
+              color="red"
+              onClick={handleDelete}
+            >
+              <IconTrash size={16} />
+            </ActionIcon>
+          </Group>
         </Group>
 
         <Title
@@ -257,14 +371,12 @@ export const TaskListPage = () => {
         <Stack gap="xl">
         {/* Header */}
         <Group justify="space-between" align="center">
-          <Group gap="sm">
-            <ActionIcon variant="subtle" size="lg" onClick={() => navigate('/dashboard')}>
-              <IconChevronLeft size={24} />
-            </ActionIcon>
-            <Title order={2} size="h2" fw={600}>
-              Tasks
-            </Title>
-          </Group>
+          <ActionIcon variant="subtle" size="lg" onClick={() => navigate('/dashboard')}>
+            <IconChevronLeft size={24} />
+          </ActionIcon>
+          <Title order={2} size="h2" fw={600}>
+            Tasks
+          </Title>
           <ActionIcon variant="subtle" size="lg">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
@@ -378,6 +490,173 @@ export const TaskListPage = () => {
       onClose={() => setIsCreateModalOpen(false)}
       onSubmit={handleCreateTask}
     />
+
+    {/* Edit Task Modal */}
+    <Modal
+      opened={isEditModalOpen}
+      onClose={handleCloseEditModal}
+      title={
+        <Text size="lg" fw={600}>
+          Edit Task
+        </Text>
+      }
+      size="md"
+      styles={{
+        inner: {
+          paddingTop: '2rem',
+        },
+        header: {
+          paddingBottom: '1rem',
+        },
+        body: {
+          paddingTop: 0,
+          paddingBottom: '2rem',
+          maxHeight: 'calc(100vh - 200px)',
+          overflowY: 'auto',
+        },
+      }}
+    >
+      <Stack gap="md">
+        {/* Task Title */}
+        <TextInput
+          label="Task Title"
+          placeholder="Research and Planning"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          required
+          styles={{
+            label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+          }}
+        />
+
+        {/* Project Folder (Category) */}
+        <Select
+          label="Project Folder"
+          placeholder="Select category"
+          value={editCategory}
+          onChange={(value) => setEditCategory((value as TaskCategory) || '')}
+          data={[
+            { value: 'PERSONAL', label: 'Personal' },
+            { value: 'WORK', label: 'Work' },
+            { value: 'SHOPPING', label: 'Business' },
+          ]}
+          styles={{
+            label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+          }}
+        />
+
+        {/* Due Date */}
+        <TextInput
+          label="Due Date"
+          type="date"
+          placeholder="Pick date"
+          value={editDueDate}
+          onChange={(e) => setEditDueDate(e.target.value)}
+          styles={{
+            label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+          }}
+        />
+
+        {/* Time Range */}
+        <Group grow>
+          <TextInput
+            label="Start Time"
+            type="time"
+            value={editStartTime}
+            onChange={(e) => setEditStartTime(e.target.value)}
+            styles={{
+              label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+            }}
+          />
+
+          <TextInput
+            label="End Time"
+            type="time"
+            value={editEndTime}
+            onChange={(e) => setEditEndTime(e.target.value)}
+            styles={{
+              label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+            }}
+          />
+        </Group>
+
+        {/* Notes */}
+        <Textarea
+          label="Notes"
+          placeholder="Gather insights on user needs, market trends..."
+          value={editNotes}
+          onChange={(e) => setEditNotes(e.target.value)}
+          minRows={3}
+          styles={{
+            label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+          }}
+        />
+
+        <Divider />
+
+        {/* Task List (Subtasks) */}
+        <div>
+          <Text size="sm" fw={500} mb="sm">
+            Task List
+          </Text>
+
+          {/* Existing Subtasks */}
+          <Stack gap="xs" mb="sm">
+            {editSubTasks.map((subTask, index) => (
+              <Group key={index} justify="space-between" wrap="nowrap">
+                <Text size="sm" style={{ flex: 1 }}>
+                  {subTask.title}
+                </Text>
+                <ActionIcon
+                  size="sm"
+                  color="red"
+                  variant="subtle"
+                  onClick={() => handleRemoveSubTask(index)}
+                >
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </Group>
+            ))}
+          </Stack>
+
+          {/* Add New Subtask */}
+          <Group gap="xs" wrap="nowrap">
+            <TextInput
+              placeholder="Add new subtask..."
+              value={newSubTask}
+              onChange={(e) => setNewSubTask(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddSubTask();
+                }
+              }}
+              style={{ flex: 1 }}
+            />
+            <ActionIcon
+              size="lg"
+              color="violet"
+              variant="light"
+              onClick={handleAddSubTask}
+            >
+              <IconPlus size={18} />
+            </ActionIcon>
+          </Group>
+        </div>
+
+        {/* Submit Button */}
+        <Button
+          fullWidth
+          size="lg"
+          color="violet"
+          onClick={handleEditTask}
+          disabled={!editTitle.trim() || isSubmitting}
+          loading={isSubmitting}
+          mt="md"
+        >
+          Update Task
+        </Button>
+      </Stack>
+    </Modal>
   </>
   );
 };

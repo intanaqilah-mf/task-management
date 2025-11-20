@@ -93,9 +93,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await taskService.deleteTask(id);
+      const numericId = parseInt(id, 10);
       set((state) => ({
-        tasks: state.tasks.filter((task) => task.id !== id),
-        selectedTask: state.selectedTask?.id === id ? null : state.selectedTask,
+        tasks: state.tasks.filter((task) => task.id !== numericId),
+        selectedTask: state.selectedTask?.id === numericId ? null : state.selectedTask,
         isLoading: false,
       }));
     } catch (error: any) {

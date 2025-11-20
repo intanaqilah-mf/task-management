@@ -28,7 +28,7 @@ export const taskService = {
 
   async updateTask(payload: UpdateTaskPayload): Promise<Task> {
     const { id, ...data } = payload;
-    return apiClient.put<Task>(API_ENDPOINTS.TASKS.UPDATE(id), data);
+    return apiClient.put<Task>(API_ENDPOINTS.TASKS.UPDATE(String(id)), data);
   },
 
   async deleteTask(id: string): Promise<void> {
