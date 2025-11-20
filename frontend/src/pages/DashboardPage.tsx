@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Container,
   Title,
@@ -19,10 +20,31 @@ import {
 } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate } from 'react-router-dom';
+import { BottomNav } from '@/components/layout/BottomNav';
+import { CreateTaskModal } from '@/components/modals/CreateTaskModal';
 
 export const DashboardPage = () => {
-  const { tasks } = useTasks();
+  const { tasks, createTask } = useTasks();
   const navigate = useNavigate();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      await createTask({
+        title: taskData.title,
+        description: taskData.description,
+        category: taskData.category,
+        dueDate: taskData.dueDate,
+        startTime: taskData.startTime,
+        endTime: taskData.endTime,
+        status: 'TODO',
+        priority: 'MEDIUM',
+      });
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error('Failed to create task:', error);
+    }
+  };
 
   const tasksByStatus = {
     TODO: tasks.filter((t) => t.status === 'TODO'),
@@ -137,14 +159,15 @@ export const DashboardPage = () => {
   };
 
   return (
-    <Container size="xl" px="md">
-      <Stack gap="xl">
-        {/* Hero Section */}
-        <div>
-          <Title order={1} size="h1" fw={700} style={{ fontSize: '2rem' }}>
-            Let's organize your
-              tasks today! 👋
-            </Title>
+    <>
+      <Container size="xl" px="md" pb={100}>
+        <Stack gap="xl">
+          {/* Hero Section */}
+          <div>
+            <Title order={1} size="h1" fw={700} style={{ fontSize: '2rem' }}>
+              Let's organize your
+                tasks today! 👋
+              </Title>
 
           {/* Remaining Tasks Card */}
           <Paper
@@ -369,5 +392,16 @@ export const DashboardPage = () => {
         ))}
       </Stack>
     </Container>
+
+    {/* Bottom Navigation */}
+    <BottomNav onCreateTask={() => setIsCreateModalOpen(true)} />
+
+    {/* Create Task Modal */}
+    <CreateTaskModal
+      opened={isCreateModalOpen}
+      onClose={() => setIsCreateModalOpen(false)}
+      onSubmit={handleCreateTask}
+    />
+  </>
   );
 };

@@ -1,14 +1,36 @@
+import { useState } from 'react';
 import { Container, Title, Tabs, Card, Group, Text, Badge, Avatar, Stack, ActionIcon } from '@mantine/core';
 import { IconClock, IconChevronLeft } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { BottomNav } from '@/components/layout/BottomNav';
+import { CreateTaskModal } from '@/components/modals/CreateTaskModal';
 
 export const TaskListPage = () => {
-  const { tasks } = useTasks();
+  const { tasks, createTask } = useTasks();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category');
   const dateParam = searchParams.get('date');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      await createTask({
+        title: taskData.title,
+        description: taskData.description,
+        category: taskData.category,
+        dueDate: taskData.dueDate,
+        startTime: taskData.startTime,
+        endTime: taskData.endTime,
+        status: 'TODO',
+        priority: 'MEDIUM',
+      });
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error('Failed to create task:', error);
+    }
+  };
 
   const now = new Date();
   const currentTime = now.getHours() * 60 + now.getMinutes(); // minutes since midnight
@@ -205,8 +227,9 @@ export const TaskListPage = () => {
   ];
 
   return (
-    <Container size="xl" px="md">
-      <Stack gap="xl">
+    <>
+      <Container size="xl" px="md" pb={100}>
+        <Stack gap="xl">
         {/* Header */}
         <Group justify="space-between" align="center">
           <Group gap="sm">
@@ -320,5 +343,16 @@ export const TaskListPage = () => {
         </Tabs>
       </Stack>
     </Container>
+
+    {/* Bottom Navigation */}
+    <BottomNav onCreateTask={() => setIsCreateModalOpen(true)} />
+
+    {/* Create Task Modal */}
+    <CreateTaskModal
+      opened={isCreateModalOpen}
+      onClose={() => setIsCreateModalOpen(false)}
+      onSubmit={handleCreateTask}
+    />
+  </>
   );
 };
