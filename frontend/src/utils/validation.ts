@@ -22,6 +22,8 @@ export const taskSchema = z.object({
   priority: z.string().optional(),
   category: z.string().optional(),
   dueDate: z.string().optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;

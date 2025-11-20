@@ -39,6 +39,8 @@ export interface Task {
   priority: TaskPriority;
   category?: TaskCategory;
   dueDate?: string;
+  startTime?: string;
+  endTime?: string;
   createdAt: string;
   updatedAt: string;
   userId: string;
@@ -52,6 +54,8 @@ export interface CreateTaskPayload {
   priority?: TaskPriority;
   category?: TaskCategory;
   dueDate?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface UpdateTaskPayload extends Partial<CreateTaskPayload> {

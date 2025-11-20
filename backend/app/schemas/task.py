@@ -10,7 +10,12 @@ class TaskBase(BaseModel):
     status: Optional[str] = "TODO"
     priority: Optional[str] = "MEDIUM"
     category: Optional[str] = None
-    due_date: Optional[datetime] = None
+    due_date: Optional[datetime] = Field(None, alias="dueDate")
+    start_time: Optional[str] = Field(None, alias="startTime")
+    end_time: Optional[str] = Field(None, alias="endTime")
+
+    class Config:
+        populate_by_name = True
 
 
 class TaskCreate(TaskBase):
@@ -25,18 +30,25 @@ class TaskUpdate(BaseModel):
     status: Optional[str] = None
     priority: Optional[str] = None
     category: Optional[str] = None
-    due_date: Optional[datetime] = None
+    due_date: Optional[datetime] = Field(None, alias="dueDate")
+    start_time: Optional[str] = Field(None, alias="startTime")
+    end_time: Optional[str] = Field(None, alias="endTime")
+
+    class Config:
+        populate_by_name = True
 
 
 class Task(TaskBase):
     """Task schema for responses."""
     id: int
-    user_id: int
-    created_at: datetime
-    updated_at: datetime
-    
+    user_id: int = Field(..., alias="userId")
+    created_at: datetime = Field(..., alias="createdAt")
+    updated_at: datetime = Field(..., alias="updatedAt")
+
     class Config:
         from_attributes = True
+        populate_by_name = True
+        by_alias = True
 
 
 class TaskResponse(BaseModel):
@@ -47,7 +59,13 @@ class TaskResponse(BaseModel):
     status: str
     priority: str
     category: Optional[str]
-    due_date: Optional[str]
-    user_id: int
-    created_at: str
-    updated_at: str
+    due_date: Optional[str] = Field(None, alias="dueDate")
+    start_time: Optional[str] = Field(None, alias="startTime")
+    end_time: Optional[str] = Field(None, alias="endTime")
+    user_id: int = Field(..., alias="userId")
+    created_at: str = Field(..., alias="createdAt")
+    updated_at: str = Field(..., alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+        by_alias = True

@@ -23,6 +23,8 @@ export const TaskForm = ({
     priority: task?.priority || TaskPriority.MEDIUM,
     category: task?.category,
     dueDate: task?.dueDate || '',
+    startTime: task?.startTime || '',
+    endTime: task?.endTime || '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof TaskFormData, string>>>({});
 
@@ -135,6 +137,28 @@ export const TaskForm = ({
             value={formData.dueDate}
             onChange={handleChange('dueDate')}
             error={errors.dueDate}
+            disabled={isLoading}
+          />
+        </Group>
+
+        <Group grow>
+          <TextInput
+            label="Start Time"
+            type="time"
+            placeholder="08:00"
+            value={formData.startTime}
+            onChange={handleChange('startTime')}
+            error={errors.startTime}
+            disabled={isLoading}
+          />
+
+          <TextInput
+            label="End Time"
+            type="time"
+            placeholder="09:30"
+            value={formData.endTime}
+            onChange={handleChange('endTime')}
+            error={errors.endTime}
             disabled={isLoading}
           />
         </Group>

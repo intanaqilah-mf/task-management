@@ -3,6 +3,9 @@ import { MainLayout } from './components/layout/MainLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { TaskListPage } from './pages/TaskListPage';
+import { TaskDetailPage } from './pages/TaskDetailPage';
+import { CreateTaskPage } from './pages/CreateTaskPage';
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +27,18 @@ export const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: <DashboardPage />,
+      },
+      {
+        path: 'tasks',
+        element: <TaskListPage />,
+      },
+      {
+        path: 'tasks/new',
+        element: <CreateTaskPage />,
+      },
+      {
+        path: 'tasks/:id',
+        element: <TaskDetailPage />,
       },
     ],
   },
