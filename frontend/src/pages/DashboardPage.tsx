@@ -58,15 +58,18 @@ export const DashboardPage = () => {
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes(); // minutes since midnight
 
-    const incompleteTasks = tasks.filter((t) => t.status !== 'COMPLETED');
-
-    // Filter today's tasks with time ranges
+    // Filter today's tasks with time ranges, excluding 100% completed tasks
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-    const todaysTasks = incompleteTasks.filter((t) => {
+    const todaysTasks = tasks.filter((t) => {
       if (!t.dueDate) return false;
       const dueDateStr = typeof t.dueDate === 'string' ? t.dueDate.split('T')[0] : t.dueDate;
+
+      // Exclude 100% completed tasks from being the "closest task"
+      const completionPercent = getTaskCompletionPercent(t);
+      if (completionPercent === 100) return false;
+
       return (
         dueDateStr === todayStr &&
         t.startTime &&
@@ -116,7 +119,7 @@ export const DashboardPage = () => {
 
     return tasks
       .filter((t) => {
-        if (!t.dueDate || t.status === 'COMPLETED') return false;
+        if (!t.dueDate) return false;
         if (closestTask && t.id === closestTask.id) return false;
         const dueDateStr = typeof t.dueDate === 'string' ? t.dueDate.split('T')[0] : t.dueDate;
         return dueDateStr === todayStr;
@@ -135,7 +138,7 @@ export const DashboardPage = () => {
 
     const upcomingTasks = tasks
       .filter((t) => {
-        if (!t.dueDate || t.status === 'COMPLETED') return false;
+        if (!t.dueDate) return false;
         const dueDateStr = typeof t.dueDate === 'string' ? t.dueDate.split('T')[0] : t.dueDate;
         return dueDateStr !== todayStr && dueDateStr > todayStr;
       })
