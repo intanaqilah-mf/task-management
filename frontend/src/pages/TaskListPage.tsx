@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Container, Title, Tabs, Card, Group, Text, Badge, Stack, ActionIcon, Modal, TextInput, Textarea, Select, Divider, Button } from '@mantine/core';
-import { IconClock, IconChevronLeft, IconPlus, IconTrash } from '@tabler/icons-react';
+import { Container, Title, Tabs, Card, Group, Text, Badge, Stack, ActionIcon, Modal, TextInput, Textarea, Select, Divider, Button, Menu } from '@mantine/core';
+import { IconClock, IconChevronLeft, IconPlus, IconTrash, IconFilter } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -22,6 +22,10 @@ export const TaskListPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
+  const [selectedPriority, setSelectedPriority] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
 
   // Helper function to get priority badge color
   const getPriorityColor = (priority: string) => {
@@ -148,11 +152,24 @@ export const TaskListPage = () => {
   };
 
   const handleDeleteTask = async (taskId: number) => {
+    setTaskToDelete(taskId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (taskToDelete === null) return;
     try {
-      await deleteTask(String(taskId));
+      await deleteTask(String(taskToDelete));
+      setDeleteConfirmOpen(false);
+      setTaskToDelete(null);
     } catch (error) {
       console.error('Error deleting task:', error);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setTaskToDelete(null);
   };
 
   const now = new Date();
@@ -175,6 +192,16 @@ export const TaskListPage = () => {
   let filteredTasks = dateTasks;
   if (category) {
     filteredTasks = filteredTasks.filter(t => t.category === category);
+  }
+
+  // Apply priority filter
+  if (selectedPriority) {
+    filteredTasks = filteredTasks.filter(t => t.priority === selectedPriority);
+  }
+
+  // Apply status filter
+  if (selectedStatus) {
+    filteredTasks = filteredTasks.filter(t => t.status === selectedStatus);
   }
 
   // Classify today's tasks based on time
@@ -419,7 +446,63 @@ export const TaskListPage = () => {
               });
             })()}
           </Title>
-          <div style={{ width: '40px' }} />
+          <Menu shadow="md" width={200}>
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg">
+                <IconFilter size={24} />
+              </ActionIcon>
+            </Menu.Target>
+
+            <Menu.Dropdown>
+              <Menu.Label>Filter by Priority</Menu.Label>
+              <Menu.Item onClick={() => setSelectedPriority(null)}>
+                <Text size="sm" fw={selectedPriority === null ? 600 : 400}>All Priorities</Text>
+              </Menu.Item>
+              <Menu.Item onClick={() => setSelectedPriority('URGENT')}>
+                <Group gap="xs">
+                  <Badge size="sm" color="red">URGENT</Badge>
+                  {selectedPriority === 'URGENT' && <Text size="xs">✓</Text>}
+                </Group>
+              </Menu.Item>
+              <Menu.Item onClick={() => setSelectedPriority('HIGH')}>
+                <Group gap="xs">
+                  <Badge size="sm" color="orange">HIGH</Badge>
+                  {selectedPriority === 'HIGH' && <Text size="xs">✓</Text>}
+                </Group>
+              </Menu.Item>
+              <Menu.Item onClick={() => setSelectedPriority('MEDIUM')}>
+                <Group gap="xs">
+                  <Badge size="sm" color="yellow">MEDIUM</Badge>
+                  {selectedPriority === 'MEDIUM' && <Text size="xs">✓</Text>}
+                </Group>
+              </Menu.Item>
+              <Menu.Item onClick={() => setSelectedPriority('LOW')}>
+                <Group gap="xs">
+                  <Badge size="sm" color="gray">LOW</Badge>
+                  {selectedPriority === 'LOW' && <Text size="xs">✓</Text>}
+                </Group>
+              </Menu.Item>
+
+              <Menu.Divider />
+
+              <Menu.Label>Filter by Status</Menu.Label>
+              <Menu.Item onClick={() => setSelectedStatus(null)}>
+                <Text size="sm" fw={selectedStatus === null ? 600 : 400}>All Statuses</Text>
+              </Menu.Item>
+              <Menu.Item onClick={() => setSelectedStatus('TODO')}>
+                <Group gap="xs">
+                  <Text size="sm">To Do</Text>
+                  {selectedStatus === 'TODO' && <Text size="xs">✓</Text>}
+                </Group>
+              </Menu.Item>
+              <Menu.Item onClick={() => setSelectedStatus('IN_PROGRESS')}>
+                <Group gap="xs">
+                  <Text size="sm">In Progress</Text>
+                  {selectedStatus === 'IN_PROGRESS' && <Text size="xs">✓</Text>}
+                </Group>
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
 
         {/* Category Cards */}
@@ -691,6 +774,33 @@ export const TaskListPage = () => {
         >
           Update Task
         </Button>
+      </Stack>
+    </Modal>
+
+    {/* Delete Confirmation Modal */}
+    <Modal
+      opened={deleteConfirmOpen}
+      onClose={cancelDelete}
+      title={
+        <Text size="lg" fw={600}>
+          Confirm Delete
+        </Text>
+      }
+      size="sm"
+      centered
+    >
+      <Stack gap="md">
+        <Text size="sm">
+          Are you sure you want to delete this task? This action cannot be undone.
+        </Text>
+        <Group justify="flex-end" gap="sm">
+          <Button variant="default" onClick={cancelDelete}>
+            Cancel
+          </Button>
+          <Button color="red" onClick={confirmDelete}>
+            Delete
+          </Button>
+        </Group>
       </Stack>
     </Modal>
   </>

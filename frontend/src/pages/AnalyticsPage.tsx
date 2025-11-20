@@ -122,7 +122,7 @@ export const AnalyticsPage = () => {
 
   return (
     <>
-      <Container size="xl" px="md" pb={100}>
+      <Container size="xl" px={{ base: 'xs', sm: 'md', md: 'lg' }} pb={100}>
         <Stack gap="xl" pt="md">
           {/* Header */}
           <Title order={1} size="h1" fw={700}>
@@ -130,7 +130,7 @@ export const AnalyticsPage = () => {
           </Title>
 
           {/* Weekly Progress Chart */}
-          <Paper p="lg" radius="md" withBorder>
+          <Paper p={{ base: 'sm', sm: 'md', md: 'lg' }} radius="md" withBorder>
             <Text size="sm" fw={600} mb="xs" c="dimmed">
               Weekly Progress
             </Text>
@@ -144,7 +144,7 @@ export const AnalyticsPage = () => {
                 <Text size="xs" c="dimmed">Incomplete</Text>
               </Group>
             </Group>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 180 : 200}>
               <BarChart data={weeklyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis
@@ -174,9 +174,9 @@ export const AnalyticsPage = () => {
           </Paper>
 
           {/* Stats Grid */}
-          <Group grow>
+          <Group grow style={{ flexDirection: 'row' }}>
             {/* Completion Rate */}
-            <Paper p="lg" radius="md" withBorder>
+            <Paper p={{ base: 'sm', sm: 'md', md: 'lg' }} radius="md" withBorder style={{ flex: '1 1 calc(50% - 8px)', minWidth: '280px' }}>
               <Text size="sm" fw={600} c="dimmed" mb="xs">
                 Completion Rate
               </Text>
@@ -189,7 +189,7 @@ export const AnalyticsPage = () => {
             </Paper>
 
             {/* Overdue Tasks */}
-            <Paper p="lg" radius="md" withBorder>
+            <Paper p={{ base: 'sm', sm: 'md', md: 'lg' }} radius="md" withBorder style={{ flex: '1 1 calc(50% - 8px)', minWidth: '280px' }}>
               <Text size="sm" fw={600} c="dimmed" mb="xs">
                 Overdue Tasks
               </Text>
@@ -203,7 +203,7 @@ export const AnalyticsPage = () => {
           </Group>
 
           {/* Productivity Score */}
-          <Paper p="lg" radius="md" withBorder>
+          <Paper p={{ base: 'sm', sm: 'md', md: 'lg' }} radius="md" withBorder>
             <Text size="sm" fw={600} c="dimmed" mb="xs">
               Productivity Score
             </Text>
@@ -228,7 +228,7 @@ export const AnalyticsPage = () => {
           </Paper>
 
           {/* Time Spent on Tasks */}
-          <Paper p="lg" radius="md" withBorder>
+          <Paper p={{ base: 'sm', sm: 'md', md: 'lg' }} radius="md" withBorder>
             <Text size="sm" fw={600} c="dimmed" mb="xs">
               Time Spent on Tasks
             </Text>

@@ -41,6 +41,8 @@ export const DashboardPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
 
   // Edit form state
   const [editTitle, setEditTitle] = useState('');
@@ -114,11 +116,24 @@ export const DashboardPage = () => {
 
   const handleDeleteTask = async (taskId: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    setTaskToDelete(taskId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (taskToDelete === null) return;
     try {
-      await deleteTask(String(taskId));
+      await deleteTask(String(taskToDelete));
+      setDeleteConfirmOpen(false);
+      setTaskToDelete(null);
     } catch (error) {
       console.error('Error deleting task:', error);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setTaskToDelete(null);
   };
 
   // Helper function to get current date in Malaysia timezone
@@ -851,6 +866,33 @@ export const DashboardPage = () => {
         >
           Update Task
         </Button>
+      </Stack>
+    </Modal>
+
+    {/* Delete Confirmation Modal */}
+    <Modal
+      opened={deleteConfirmOpen}
+      onClose={cancelDelete}
+      title={
+        <Text size="lg" fw={600}>
+          Confirm Delete
+        </Text>
+      }
+      size="sm"
+      centered
+    >
+      <Stack gap="md">
+        <Text size="sm">
+          Are you sure you want to delete this task? This action cannot be undone.
+        </Text>
+        <Group justify="flex-end" gap="sm">
+          <Button variant="default" onClick={cancelDelete}>
+            Cancel
+          </Button>
+          <Button color="red" onClick={confirmDelete}>
+            Delete
+          </Button>
+        </Group>
       </Stack>
     </Modal>
   </>
