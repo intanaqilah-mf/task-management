@@ -15,12 +15,14 @@ import {
   Textarea,
   Select,
   Divider,
+  Menu,
 } from '@mantine/core';
 import {
   IconPlus,
   IconClock,
   IconChevronRight,
   IconTrash,
+  IconFilter,
 } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate } from 'react-router-dom';
@@ -47,6 +49,9 @@ export const DashboardPage = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPriority, setSelectedPriority] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [filterMenuOpened, setFilterMenuOpened] = useState(false);
 
   // Edit form state
   const [editTitle, setEditTitle] = useState('');
@@ -218,21 +223,35 @@ export const DashboardPage = () => {
     }
   };
 
-  // Filter tasks based on search query
-  const filterTasksBySearch = (tasksToFilter: any[]) => {
-    if (!searchQuery.trim()) return tasksToFilter;
+  // Filter tasks based on search query, priority, and status
+  const filterTasks = (tasksToFilter: any[]) => {
+    let filtered = tasksToFilter;
 
-    const query = searchQuery.toLowerCase();
-    return tasksToFilter.filter((task) => {
-      const titleMatch = task.title?.toLowerCase().includes(query);
-      const descriptionMatch = task.description?.toLowerCase().includes(query);
-      const categoryMatch = task.category?.toLowerCase().includes(query);
-      const subtasksMatch = task.subtasks?.some((st: any) =>
-        st.title?.toLowerCase().includes(query)
-      );
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((task) => {
+        const titleMatch = task.title?.toLowerCase().includes(query);
+        const descriptionMatch = task.description?.toLowerCase().includes(query);
+        const categoryMatch = task.category?.toLowerCase().includes(query);
+        const subtasksMatch = task.subtasks?.some((st: any) =>
+          st.title?.toLowerCase().includes(query)
+        );
+        return titleMatch || descriptionMatch || categoryMatch || subtasksMatch;
+      });
+    }
 
-      return titleMatch || descriptionMatch || categoryMatch || subtasksMatch;
-    });
+    // Apply priority filter
+    if (selectedPriority) {
+      filtered = filtered.filter((task) => task.priority === selectedPriority);
+    }
+
+    // Apply category filter
+    if (selectedCategory) {
+      filtered = filtered.filter((task) => task.category === selectedCategory);
+    }
+
+    return filtered;
   };
 
   const tasksByStatus = {
@@ -265,10 +284,13 @@ export const DashboardPage = () => {
       );
     });
 
-    if (todaysTasks.length === 0) return null;
+    // Apply filters (search, priority, category)
+    const filteredTasks = filterTasks(todaysTasks);
+
+    if (filteredTasks.length === 0) return null;
 
     // Sort by proximity to current time
-    const sorted = todaysTasks.sort((a, b) => {
+    const sorted = filteredTasks.sort((a, b) => {
       const [aStartHour, aStartMin] = a.startTime!.split(':').map(Number);
       const [aEndHour, aEndMin] = a.endTime!.split(':').map(Number);
       const aStart = aStartHour * 60 + aStartMin;
@@ -317,7 +339,7 @@ export const DashboardPage = () => {
         return a.startTime.localeCompare(b.startTime);
       });
 
-    return filterTasksBySearch(todaysTasks);
+    return filterTasks(todaysTasks);
   };
 
   // Get upcoming tasks grouped by date
@@ -338,8 +360,8 @@ export const DashboardPage = () => {
         return aDate.localeCompare(bDate);
       });
 
-    // Apply search filter
-    const filteredTasks = filterTasksBySearch(upcomingTasks);
+    // Apply filters (search, priority, status)
+    const filteredTasks = filterTasks(upcomingTasks);
 
     // Group by date
     const grouped = filteredTasks.reduce((acc, task) => {
@@ -447,12 +469,87 @@ export const DashboardPage = () => {
         </div>
 
         {/* Search Tasks */}
-        <div>
-          <TaskSearch
-            onSearch={setSearchQuery}
-            placeholder="Search tasks by title, description, category..."
-          />
-        </div>
+        <Group gap="xs" wrap="nowrap">
+          <div style={{ flex: 1 }}>
+            <TaskSearch
+              onSearch={setSearchQuery}
+              placeholder="Search tasks by title, description, category..."
+            />
+          </div>
+          <Menu shadow="md" width={200} withinPortal opened={filterMenuOpened} onChange={setFilterMenuOpened}>
+            <Menu.Target>
+              <ActionIcon
+                variant="subtle"
+                size="xl"
+              >
+                <IconFilter size={20} />
+              </ActionIcon>
+            </Menu.Target>
+
+            <Menu.Dropdown style={{ padding: '1rem', width: '350px' }}>
+              <Stack gap="md">
+                {/* Priority Row */}
+                <Group justify="space-between" align="flex-start" wrap="nowrap">
+                  <Text size="sm" fw={500} style={{ minWidth: '80px', paddingTop: '8px' }}>
+                    Priority
+                  </Text>
+                  <Select
+                    placeholder="Select priority..."
+                    value={selectedPriority}
+                    onChange={setSelectedPriority}
+                    data={[
+                      { value: 'URGENT', label: 'URGENT' },
+                      { value: 'HIGH', label: 'HIGH' },
+                      { value: 'MEDIUM', label: 'MEDIUM' },
+                      { value: 'LOW', label: 'LOW' },
+                    ]}
+                    clearable
+                    comboboxProps={{ withinPortal: true }}
+                    renderOption={({ option }) => (
+                      <Badge
+                        color={
+                          option.value === 'URGENT' ? 'red' :
+                          option.value === 'HIGH' ? 'orange' :
+                          option.value === 'MEDIUM' ? 'yellow' :
+                          'gray'
+                        }
+                        variant="light"
+                        size="sm"
+                      >
+                        {option.label}
+                      </Badge>
+                    )}
+                    styles={{ root: { flex: 1 } }}
+                  />
+                </Group>
+
+                {/* Category Row */}
+                <Group justify="space-between" align="flex-start" wrap="nowrap">
+                  <Text size="sm" fw={500} style={{ minWidth: '80px', paddingTop: '8px' }}>
+                    Category
+                  </Text>
+                  <Select
+                    placeholder="Select category..."
+                    value={selectedCategory}
+                    onChange={setSelectedCategory}
+                    data={[
+                      { value: 'WORK', label: 'Work' },
+                      { value: 'PERSONAL', label: 'Personal' },
+                      { value: 'SHOPPING', label: 'Shopping' },
+                      { value: 'HEALTH', label: 'Health' },
+                      { value: 'FINANCE', label: 'Finance' },
+                      { value: 'EDUCATION', label: 'Education' },
+                      { value: 'OTHER', label: 'Other' },
+                    ]}
+                    clearable
+                    comboboxProps={{ withinPortal: true }}
+                    styles={{ root: { flex: 1 } }}
+                  />
+                </Group>
+              </Stack>
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
 
         {/* Closest Task */}
         {getClosestTask() && (

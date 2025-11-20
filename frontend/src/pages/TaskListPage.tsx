@@ -10,6 +10,7 @@ import { TaskListSkeleton } from '@/components/ui/TaskListSkeleton';
 import { DueDateNotifications } from '@/components/notifications/DueDateNotifications';
 import type { TaskCategory } from '@/types';
 import { BASE_CONSTANTS, parseDateInMalaysiaTimezone } from '@/constants/base.constant';
+import classes from './TaskListPage.module.css';
 
 interface SubTask {
   id?: number;
@@ -26,10 +27,23 @@ export const TaskListPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [selectedPriority, setSelectedPriority] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterMenuOpened, setFilterMenuOpened] = useState(false);
+
+  // Edit form state - MUST be declared before any conditional returns
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState<TaskCategory | ''>('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editSubTasks, setEditSubTasks] = useState<SubTask[]>([]);
+  const [newSubTask, setNewSubTask] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Show loading skeleton while fetching tasks
   if (isLoading && tasks.length === 0) {
@@ -76,17 +90,6 @@ export const TaskListPage = () => {
         return 'gray';
     }
   };
-
-  // Edit form state
-  const [editTitle, setEditTitle] = useState('');
-  const [editCategory, setEditCategory] = useState<TaskCategory | ''>('');
-  const [editDueDate, setEditDueDate] = useState('');
-  const [editStartTime, setEditStartTime] = useState('');
-  const [editEndTime, setEditEndTime] = useState('');
-  const [editNotes, setEditNotes] = useState('');
-  const [editSubTasks, setEditSubTasks] = useState<SubTask[]>([]);
-  const [newSubTask, setNewSubTask] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCreateTask = async (taskData: any) => {
     try {
@@ -219,10 +222,13 @@ export const TaskListPage = () => {
     });
   };
 
-  // Apply category filter if selected
+  // Apply category filter if selected (from URL or filter)
   let filteredTasks = dateTasks;
   if (category) {
     filteredTasks = filteredTasks.filter(t => t.category === category);
+  }
+  if (selectedCategory) {
+    filteredTasks = filteredTasks.filter(t => t.category === selectedCategory);
   }
 
   // Apply priority filter
@@ -350,7 +356,6 @@ export const TaskListPage = () => {
         style={{
           cursor: 'pointer',
           opacity: isCompleted ? 0.6 : 1,
-          backgroundColor: isCompleted ? '#f5f5f5' : 'white',
           position: 'relative',
         }}
         onClick={handleCardClick}
@@ -461,7 +466,7 @@ export const TaskListPage = () => {
       <Container size="xl" px="md" pb={100}>
         <Stack gap="xl">
         {/* Header */}
-        <Group justify="space-between" align="center">
+        <Group justify="center" align="center">
           <Title order={2} size="h2" fw={600}>
             {(() => {
               const today = new Date();
@@ -481,66 +486,6 @@ export const TaskListPage = () => {
           </Title>
         </Group>
 
-        {/* Filter Menu */}
-        <Group justify="flex-end">
-          <Menu shadow="md" width={200}>
-            <Menu.Target>
-              <ActionIcon variant="subtle" size="lg">
-                <IconFilter size={24} />
-              </ActionIcon>
-            </Menu.Target>
-
-            <Menu.Dropdown>
-              <Menu.Label>Filter by Priority</Menu.Label>
-              <Menu.Item onClick={() => setSelectedPriority(null)}>
-                <Text size="sm" fw={selectedPriority === null ? 600 : 400}>All Priorities</Text>
-              </Menu.Item>
-              <Menu.Item onClick={() => setSelectedPriority('URGENT')}>
-                <Group gap="xs">
-                  <Badge size="sm" color="red">URGENT</Badge>
-                  {selectedPriority === 'URGENT' && <Text size="xs">✓</Text>}
-                </Group>
-              </Menu.Item>
-              <Menu.Item onClick={() => setSelectedPriority('HIGH')}>
-                <Group gap="xs">
-                  <Badge size="sm" color="orange">HIGH</Badge>
-                  {selectedPriority === 'HIGH' && <Text size="xs">✓</Text>}
-                </Group>
-              </Menu.Item>
-              <Menu.Item onClick={() => setSelectedPriority('MEDIUM')}>
-                <Group gap="xs">
-                  <Badge size="sm" color="yellow">MEDIUM</Badge>
-                  {selectedPriority === 'MEDIUM' && <Text size="xs">✓</Text>}
-                </Group>
-              </Menu.Item>
-              <Menu.Item onClick={() => setSelectedPriority('LOW')}>
-                <Group gap="xs">
-                  <Badge size="sm" color="gray">LOW</Badge>
-                  {selectedPriority === 'LOW' && <Text size="xs">✓</Text>}
-                </Group>
-              </Menu.Item>
-
-              <Menu.Divider />
-
-              <Menu.Label>Filter by Status</Menu.Label>
-              <Menu.Item onClick={() => setSelectedStatus(null)}>
-                <Text size="sm" fw={selectedStatus === null ? 600 : 400}>All Statuses</Text>
-              </Menu.Item>
-              <Menu.Item onClick={() => setSelectedStatus('TODO')}>
-                <Group gap="xs">
-                  <Text size="sm">To Do</Text>
-                  {selectedStatus === 'TODO' && <Text size="xs">✓</Text>}
-                </Group>
-              </Menu.Item>
-              <Menu.Item onClick={() => setSelectedStatus('IN_PROGRESS')}>
-                <Group gap="xs">
-                  <Text size="sm">In Progress</Text>
-                  {selectedStatus === 'IN_PROGRESS' && <Text size="xs">✓</Text>}
-                </Group>
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </Group>
 
         {/* Category Cards */}
         <Group grow={!category}>
@@ -591,15 +536,116 @@ export const TaskListPage = () => {
         </Group>
 
         {/* Search Tasks */}
-        <div>
-          <TaskSearch
-            onSearch={setSearchQuery}
-            placeholder="Search tasks by title, description, category..."
-          />
-        </div>
+        <Group gap="xs" wrap="nowrap">
+          <div style={{ flex: 1 }}>
+            <TaskSearch
+              onSearch={setSearchQuery}
+              placeholder="Search tasks by title, description, category..."
+            />
+          </div>
+          <Menu shadow="md" width={200} withinPortal opened={filterMenuOpened} onChange={setFilterMenuOpened}>
+            <Menu.Target>
+              <ActionIcon
+                variant="subtle"
+                size="xl"
+              >
+                <IconFilter size={20} />
+              </ActionIcon>
+            </Menu.Target>
+
+            <Menu.Dropdown style={{ padding: '1rem', width: '350px' }}>
+              <Stack gap="md">
+                {/* Priority Row */}
+                <Group justify="space-between" align="flex-start" wrap="nowrap">
+                  <Text size="sm" fw={500} style={{ minWidth: '80px', paddingTop: '8px' }}>
+                    Priority
+                  </Text>
+                  <Select
+                    placeholder="Select priority..."
+                    value={selectedPriority}
+                    onChange={setSelectedPriority}
+                    data={[
+                      { value: 'URGENT', label: 'URGENT' },
+                      { value: 'HIGH', label: 'HIGH' },
+                      { value: 'MEDIUM', label: 'MEDIUM' },
+                      { value: 'LOW', label: 'LOW' },
+                    ]}
+                    clearable
+                    comboboxProps={{ withinPortal: true }}
+                    renderOption={({ option }) => (
+                      <Badge
+                        color={
+                          option.value === 'URGENT' ? 'red' :
+                          option.value === 'HIGH' ? 'orange' :
+                          option.value === 'MEDIUM' ? 'yellow' :
+                          'gray'
+                        }
+                        variant="light"
+                        size="sm"
+                      >
+                        {option.label}
+                      </Badge>
+                    )}
+                    styles={{ root: { flex: 1 } }}
+                  />
+                </Group>
+
+                {/* Category Row */}
+                <Group justify="space-between" align="flex-start" wrap="nowrap">
+                  <Text size="sm" fw={500} style={{ minWidth: '80px', paddingTop: '8px' }}>
+                    Category
+                  </Text>
+                  <Select
+                    placeholder="Select category..."
+                    value={selectedCategory}
+                    onChange={setSelectedCategory}
+                    data={[
+                      { value: 'WORK', label: 'Work' },
+                      { value: 'PERSONAL', label: 'Personal' },
+                      { value: 'SHOPPING', label: 'Shopping' },
+                      { value: 'HEALTH', label: 'Health' },
+                      { value: 'FINANCE', label: 'Finance' },
+                      { value: 'EDUCATION', label: 'Education' },
+                      { value: 'OTHER', label: 'Other' },
+                    ]}
+                    clearable
+                    comboboxProps={{ withinPortal: true }}
+                    styles={{ root: { flex: 1 } }}
+                  />
+                </Group>
+              </Stack>
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
 
         {/* Tabs */}
-        <Tabs defaultValue="dueSoon" variant="pills">
+        <div className={classes.tabsContainer}>
+        <Tabs
+          defaultValue="dueSoon"
+          variant="pills"
+          styles={{
+            tab: {
+              backgroundColor: '#f8f9fa !important',
+              color: '#868e96 !important',
+              fontWeight: '500 !important',
+              border: '1px solid transparent !important',
+              transition: 'all 0.2s ease !important',
+              '&[data-active]': {
+                background: 'linear-gradient(135deg, #6C5DD3 0%, #8B7FE8 100%) !important',
+                color: 'white !important',
+                border: '1px solid #6C5DD3 !important',
+                boxShadow: '0 4px 12px rgba(108, 93, 211, 0.25) !important',
+              },
+              '&:hover': {
+                backgroundColor: '#e9ecef !important',
+              },
+              '&[data-active]:hover': {
+                background: 'linear-gradient(135deg, #6C5DD3 0%, #8B7FE8 100%) !important',
+                backgroundColor: 'transparent !important',
+              },
+            },
+          }}
+        >
           <Tabs.List grow>
             <Tabs.Tab value="dueSoon">Due Soon</Tabs.Tab>
             <Tabs.Tab value="upcoming">Upcoming</Tabs.Tab>
@@ -642,6 +688,7 @@ export const TaskListPage = () => {
             </Stack>
           </Tabs.Panel>
         </Tabs>
+        </div>
       </Stack>
     </Container>
 

@@ -1,0 +1,25 @@
+/* Task List Page Styles */
+
+/* Tab Styles */
+.tabsContainer :global(.mantine-Tabs-tab) {
+  background-color: #f8f9fa;
+  color: #868e96;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tabsContainer :global(.mantine-Tabs-tab:hover) {
+  background-color: #e9ecef;
+}
+
+.tabsContainer :global(.mantine-Tabs-tab[data-active]) {
+  background: linear-gradient(135deg, #6C5DD3 0%, #8B7FE8 100%) !important;
+  color: white !important;
+  border: 1px solid #6C5DD3 !important;
+  box-shadow: 0 4px 12px rgba(108, 93, 211, 0.25) !important;
+}
+
+.tabsContainer :global(.mantine-Tabs-tab[data-active]:hover) {
+  background: linear-gradient(135deg, #6C5DD3 0%, #8B7FE8 100%) !important;
+}
