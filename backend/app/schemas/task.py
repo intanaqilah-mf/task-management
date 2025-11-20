@@ -38,9 +38,17 @@ class TaskUpdate(BaseModel):
         populate_by_name = True
 
 
-class Task(TaskBase):
+class Task(BaseModel):
     """Task schema for responses."""
     id: int
+    title: str
+    description: Optional[str] = None
+    status: str
+    priority: str
+    category: Optional[str] = None
+    due_date: Optional[datetime] = Field(None, alias="dueDate")
+    start_time: Optional[str] = Field(None, alias="startTime")
+    end_time: Optional[str] = Field(None, alias="endTime")
     user_id: int = Field(..., alias="userId")
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
@@ -48,7 +56,6 @@ class Task(TaskBase):
     class Config:
         from_attributes = True
         populate_by_name = True
-        by_alias = True
 
 
 class TaskResponse(BaseModel):

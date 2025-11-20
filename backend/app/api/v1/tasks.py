@@ -11,7 +11,7 @@ from app.api.dependencies import get_current_user
 router = APIRouter()
 
 
-@router.get("/", response_model=List[TaskSchema])
+@router.get("/", response_model=List[TaskSchema], response_model_by_alias=True)
 def get_tasks(
     status_filter: Optional[List[str]] = Query(None, alias="status"),
     priority_filter: Optional[List[str]] = Query(None, alias="priority"),
@@ -51,7 +51,7 @@ def get_tasks(
     return tasks
 
 
-@router.post("/", response_model=TaskSchema, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=TaskSchema, response_model_by_alias=True, status_code=status.HTTP_201_CREATED)
 def create_task(
     task_data: TaskCreate,
     db: Session = Depends(get_db),
@@ -77,7 +77,7 @@ def create_task(
     return db_task
 
 
-@router.get("/{task_id}", response_model=TaskSchema)
+@router.get("/{task_id}", response_model=TaskSchema, response_model_by_alias=True)
 def get_task(
     task_id: int,
     db: Session = Depends(get_db),
@@ -98,7 +98,7 @@ def get_task(
     return task
 
 
-@router.put("/{task_id}", response_model=TaskSchema)
+@router.put("/{task_id}", response_model=TaskSchema, response_model_by_alias=True)
 def update_task(
     task_id: int,
     task_data: TaskUpdate,

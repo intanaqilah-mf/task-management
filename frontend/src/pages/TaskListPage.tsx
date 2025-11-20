@@ -11,7 +11,6 @@ export const TaskListPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category');
-  const dateParam = searchParams.get('date');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleCreateTask = async (taskData: any) => {
@@ -34,81 +33,54 @@ export const TaskListPage = () => {
 
   const now = new Date();
   const currentTime = now.getHours() * 60 + now.getMinutes(); // minutes since midnight
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // If date parameter is provided, filter for that specific date
-  const targetDate = dateParam ? new Date(dateParam) : null;
-  const targetDateString = targetDate?.toDateString();
+  // Get date from URL parameter or use today
+  const dateParam = searchParams.get('date');
+  const targetDate = dateParam ? new Date(dateParam) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 
-  // Filter tasks by category and/or date
-  let filteredTasks = tasks;
+  // Get tasks for the target date (from URL or today)
+  const dateTasks = tasks.filter(t => {
+    if (t.status === 'COMPLETED') return false;
+    if (!t.dueDate) return false;
+    const dueDateStr = typeof t.dueDate === 'string' ? t.dueDate.split('T')[0] : t.dueDate;
+    return dueDateStr === targetDateStr;
+  });
 
+  // Apply category filter if selected
+  let filteredTasks = dateTasks;
   if (category) {
     filteredTasks = filteredTasks.filter(t => t.category === category);
   }
 
-  if (targetDate) {
-    // Filter for specific date
-    filteredTasks = filteredTasks.filter(t => {
-      if (!t.dueDate) return false;
-      return new Date(t.dueDate).toDateString() === targetDateString;
-    });
-  }
-
-  // Classify tasks based on time
+  // Classify today's tasks based on time
   const dueSoon = filteredTasks.filter((t) => {
-    if (t.status === 'COMPLETED' || !t.dueDate) return false;
+    if (!t.startTime) return false;
 
-    const taskDate = new Date(t.dueDate);
-    const isToday = taskDate.toDateString() === today.toDateString();
-
-    if (isToday && t.startTime) {
-      // For today's tasks with time, check if it's starting soon (within next 2 hours)
-      const [startHour, startMin] = t.startTime.split(':').map(Number);
-      const startTimeMinutes = startHour * 60 + startMin;
-      const timeDiff = startTimeMinutes - currentTime;
-      return timeDiff > 0 && timeDiff <= 120; // Within next 2 hours
-    }
-
-    // For tasks without time, check if due within next 24 hours
-    const hoursDiff = (taskDate.getTime() - today.getTime()) / (1000 * 60 * 60);
-    return hoursDiff >= 0 && hoursDiff <= 24;
+    // Check if it's starting soon (within next 2 hours)
+    const [startHour, startMin] = t.startTime.split(':').map(Number);
+    const startTimeMinutes = startHour * 60 + startMin;
+    const timeDiff = startTimeMinutes - currentTime;
+    return timeDiff > 0 && timeDiff <= 120; // Within next 2 hours
   });
 
   const upcoming = filteredTasks.filter((t) => {
-    if (t.status === 'COMPLETED' || !t.dueDate) return false;
+    if (!t.startTime) return false;
 
-    const taskDate = new Date(t.dueDate);
-    const isToday = taskDate.toDateString() === today.toDateString();
-
-    if (isToday && t.startTime) {
-      // For today's tasks with time, check if it's upcoming (more than 2 hours away)
-      const [startHour, startMin] = t.startTime.split(':').map(Number);
-      const startTimeMinutes = startHour * 60 + startMin;
-      const timeDiff = startTimeMinutes - currentTime;
-      return timeDiff > 120; // More than 2 hours away
-    }
-
-    // For tasks without time, check if due more than 24 hours from now
-    const hoursDiff = (taskDate.getTime() - today.getTime()) / (1000 * 60 * 60);
-    return hoursDiff > 24;
+    // Check if it's upcoming (more than 2 hours away)
+    const [startHour, startMin] = t.startTime.split(':').map(Number);
+    const startTimeMinutes = startHour * 60 + startMin;
+    const timeDiff = startTimeMinutes - currentTime;
+    return timeDiff > 120; // More than 2 hours away
   });
 
   const overdue = filteredTasks.filter((t) => {
-    if (t.status === 'COMPLETED' || !t.dueDate) return false;
+    if (!t.endTime) return false;
 
-    const taskDate = new Date(t.dueDate);
-    const isToday = taskDate.toDateString() === today.toDateString();
-
-    if (isToday && t.endTime) {
-      // For today's tasks with time, check if end time has passed
-      const [endHour, endMin] = t.endTime.split(':').map(Number);
-      const endTimeMinutes = endHour * 60 + endMin;
-      return currentTime > endTimeMinutes;
-    }
-
-    // For tasks without time, check if due date has passed
-    return taskDate < today;
+    // Check if end time has passed
+    const [endHour, endMin] = t.endTime.split(':').map(Number);
+    const endTimeMinutes = endHour * 60 + endMin;
+    return currentTime > endTimeMinutes;
   });
 
   const formatTimeRange = (startTime?: string, endTime?: string) => {
@@ -187,39 +159,25 @@ export const TaskListPage = () => {
     </Card>
   );
 
-  // Get tasks for the current view (filtered by date if date param exists)
-  const getTasksForCurrentDate = () => {
-    if (!targetDate) {
-      // If no date filter, show today's tasks
-      return tasks.filter(t => {
-        if (!t.dueDate || t.status === 'COMPLETED') return false;
-        return new Date(t.dueDate).toDateString() === today.toDateString();
-      });
-    }
-    // If date filter exists, use filtered tasks
-    return filteredTasks.filter(t => t.status !== 'COMPLETED');
-  };
-
-  const tasksForDate = getTasksForCurrentDate();
-
+  // Use target date's tasks for category counts (before category filtering)
   const categoryCards = [
     {
       title: 'Work',
-      count: tasksForDate.filter((t) => t.category === 'WORK').length,
+      count: dateTasks.filter((t) => t.category === 'WORK').length,
       color: '#6C5DD3',
       gradient: 'linear-gradient(135deg, #6C5DD3 0%, #8B7FE8 100%)',
       category: 'WORK',
     },
     {
       title: 'Business',
-      count: tasksForDate.filter((t) => t.category === 'SHOPPING').length,
+      count: dateTasks.filter((t) => t.category === 'SHOPPING').length,
       color: '#FFD93D',
       gradient: 'linear-gradient(135deg, #FFD93D 0%, #FFE566 100%)',
       category: 'SHOPPING',
     },
     {
       title: 'Personal',
-      count: tasksForDate.filter((t) => t.category === 'PERSONAL').length,
+      count: dateTasks.filter((t) => t.category === 'PERSONAL').length,
       color: '#4ADE80',
       gradient: 'linear-gradient(135deg, #4ADE80 0%, #6EE7A8 100%)',
       category: 'PERSONAL',

@@ -60,11 +60,14 @@ export const DashboardPage = () => {
     const incompleteTasks = tasks.filter((t) => t.status !== 'COMPLETED');
 
     // Filter today's tasks with time ranges
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
     const todaysTasks = incompleteTasks.filter((t) => {
       if (!t.dueDate) return false;
-      const taskDate = new Date(t.dueDate);
+      const dueDateStr = typeof t.dueDate === 'string' ? t.dueDate.split('T')[0] : t.dueDate;
       return (
-        taskDate.toDateString() === now.toDateString() &&
+        dueDateStr === todayStr &&
         t.startTime &&
         t.endTime
       );
@@ -106,14 +109,16 @@ export const DashboardPage = () => {
   // Get today's tasks (excluding the closest one)
   const getTodaysTasks = () => {
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const closestTask = getClosestTask();
 
     return tasks
       .filter((t) => {
         if (!t.dueDate || t.status === 'COMPLETED') return false;
         if (closestTask && t.id === closestTask.id) return false;
-        const taskDate = new Date(t.dueDate);
-        return taskDate.toDateString() === now.toDateString();
+        const dueDateStr = typeof t.dueDate === 'string' ? t.dueDate.split('T')[0] : t.dueDate;
+        return dueDateStr === todayStr;
       })
       .sort((a, b) => {
         if (!a.startTime || !b.startTime) return 0;
@@ -124,19 +129,29 @@ export const DashboardPage = () => {
   // Get upcoming tasks grouped by date
   const getUpcomingTasksByDate = () => {
     const now = new Date();
-    const today = now.toDateString();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     const upcomingTasks = tasks
       .filter((t) => {
         if (!t.dueDate || t.status === 'COMPLETED') return false;
-        const taskDate = new Date(t.dueDate);
-        return taskDate.toDateString() !== today && taskDate > now;
+        const dueDateStr = typeof t.dueDate === 'string' ? t.dueDate.split('T')[0] : t.dueDate;
+        return dueDateStr !== todayStr && dueDateStr > todayStr;
       })
-      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+      .sort((a, b) => {
+        const aDate = typeof a.dueDate === 'string' ? a.dueDate.split('T')[0] : a.dueDate!;
+        const bDate = typeof b.dueDate === 'string' ? b.dueDate.split('T')[0] : b.dueDate!;
+        return aDate.localeCompare(bDate);
+      });
 
     // Group by date
     const grouped = upcomingTasks.reduce((acc, task) => {
-      const date = new Date(task.dueDate!).toDateString();
+      const dueDateStr = typeof task.dueDate === 'string' ? task.dueDate!.split('T')[0] : task.dueDate!;
+      const date = new Date(dueDateStr).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      });
       if (!acc[date]) acc[date] = [];
       acc[date].push(task);
       return acc;
@@ -193,7 +208,11 @@ export const DashboardPage = () => {
                 radius="xl"
                 variant="white"
                 c="#6C5DD3"
-                onClick={() => navigate('/tasks')}
+                onClick={() => {
+                  const today = new Date();
+                  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                  navigate(`/tasks?date=${todayStr}`);
+                }}
               >
                 <IconChevronRight size={24} />
               </ActionIcon>
@@ -211,8 +230,8 @@ export const DashboardPage = () => {
               style={{ cursor: 'pointer' }}
               onClick={() => {
                 const task = getClosestTask()!;
-                const date = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
-                navigate(`/tasks?date=${date}`);
+                const taskDate = task.dueDate ? (typeof task.dueDate === 'string' ? task.dueDate.split('T')[0] : task.dueDate) : '';
+                navigate(`/tasks?date=${taskDate}`);
               }}
             >
               <Group justify="space-between" mb="sm">
@@ -269,8 +288,8 @@ export const DashboardPage = () => {
                 withBorder
                 style={{ cursor: 'pointer' }}
                 onClick={() => {
-                  const date = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
-                  navigate(`/tasks?date=${date}`);
+                  const taskDate = task.dueDate ? (typeof task.dueDate === 'string' ? task.dueDate.split('T')[0] : task.dueDate) : '';
+                  navigate(`/tasks?date=${taskDate}`);
                 }}
               >
                 <Group justify="space-between" mb="sm">
@@ -352,8 +371,8 @@ export const DashboardPage = () => {
                   withBorder
                   style={{ cursor: 'pointer' }}
                   onClick={() => {
-                    const date = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
-                    navigate(`/tasks?date=${date}`);
+                    const taskDate = task.dueDate ? (typeof task.dueDate === 'string' ? task.dueDate.split('T')[0] : task.dueDate) : '';
+                    navigate(`/tasks?date=${taskDate}`);
                   }}
                 >
                   <Group justify="space-between" mb="sm">
