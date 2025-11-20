@@ -8,52 +8,99 @@ export const TaskListPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category');
+  const dateParam = searchParams.get('date');
 
   const now = new Date();
+  const currentTime = now.getHours() * 60 + now.getMinutes(); // minutes since midnight
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const nextWeek = new Date(today);
-  nextWeek.setDate(nextWeek.getDate() + 7);
 
-  const filteredTasks = category
-    ? tasks.filter(t => t.category === category)
-    : tasks;
+  // If date parameter is provided, filter for that specific date
+  const targetDate = dateParam ? new Date(dateParam) : null;
+  const targetDateString = targetDate?.toDateString();
 
-  const dueSoon = filteredTasks.filter(
-    (t) => t.dueDate && new Date(t.dueDate) >= today && new Date(t.dueDate) < nextWeek && t.status !== 'COMPLETED'
-  );
+  // Filter tasks by category and/or date
+  let filteredTasks = tasks;
 
-  const upcoming = filteredTasks.filter(
-    (t) => t.dueDate && new Date(t.dueDate) >= nextWeek && t.status !== 'COMPLETED'
-  );
+  if (category) {
+    filteredTasks = filteredTasks.filter(t => t.category === category);
+  }
 
-  const overdue = filteredTasks.filter(
-    (t) => t.dueDate && new Date(t.dueDate) < today && t.status !== 'COMPLETED'
-  );
+  if (targetDate) {
+    // Filter for specific date
+    filteredTasks = filteredTasks.filter(t => {
+      if (!t.dueDate) return false;
+      return new Date(t.dueDate).toDateString() === targetDateString;
+    });
+  }
 
-  const getCategoryInfo = () => {
-    const categories: Record<string, { title: string; color: string; gradient: string }> = {
-      WORK: {
-        title: 'Work Tasks',
-        color: '#6C5DD3',
-        gradient: 'linear-gradient(135deg, #6C5DD3 0%, #8B7FE8 100%)',
-      },
-      SHOPPING: {
-        title: 'Business Tasks',
-        color: '#FFD93D',
-        gradient: 'linear-gradient(135deg, #FFD93D 0%, #FFE566 100%)',
-      },
-      PERSONAL: {
-        title: 'Personal Tasks',
-        color: '#4ADE80',
-        gradient: 'linear-gradient(135deg, #4ADE80 0%, #6EE7A8 100%)',
-      },
+  // Classify tasks based on time
+  const dueSoon = filteredTasks.filter((t) => {
+    if (t.status === 'COMPLETED' || !t.dueDate) return false;
+
+    const taskDate = new Date(t.dueDate);
+    const isToday = taskDate.toDateString() === today.toDateString();
+
+    if (isToday && t.startTime) {
+      // For today's tasks with time, check if it's starting soon (within next 2 hours)
+      const [startHour, startMin] = t.startTime.split(':').map(Number);
+      const startTimeMinutes = startHour * 60 + startMin;
+      const timeDiff = startTimeMinutes - currentTime;
+      return timeDiff > 0 && timeDiff <= 120; // Within next 2 hours
+    }
+
+    // For tasks without time, check if due within next 24 hours
+    const hoursDiff = (taskDate.getTime() - today.getTime()) / (1000 * 60 * 60);
+    return hoursDiff >= 0 && hoursDiff <= 24;
+  });
+
+  const upcoming = filteredTasks.filter((t) => {
+    if (t.status === 'COMPLETED' || !t.dueDate) return false;
+
+    const taskDate = new Date(t.dueDate);
+    const isToday = taskDate.toDateString() === today.toDateString();
+
+    if (isToday && t.startTime) {
+      // For today's tasks with time, check if it's upcoming (more than 2 hours away)
+      const [startHour, startMin] = t.startTime.split(':').map(Number);
+      const startTimeMinutes = startHour * 60 + startMin;
+      const timeDiff = startTimeMinutes - currentTime;
+      return timeDiff > 120; // More than 2 hours away
+    }
+
+    // For tasks without time, check if due more than 24 hours from now
+    const hoursDiff = (taskDate.getTime() - today.getTime()) / (1000 * 60 * 60);
+    return hoursDiff > 24;
+  });
+
+  const overdue = filteredTasks.filter((t) => {
+    if (t.status === 'COMPLETED' || !t.dueDate) return false;
+
+    const taskDate = new Date(t.dueDate);
+    const isToday = taskDate.toDateString() === today.toDateString();
+
+    if (isToday && t.endTime) {
+      // For today's tasks with time, check if end time has passed
+      const [endHour, endMin] = t.endTime.split(':').map(Number);
+      const endTimeMinutes = endHour * 60 + endMin;
+      return currentTime > endTimeMinutes;
+    }
+
+    // For tasks without time, check if due date has passed
+    return taskDate < today;
+  });
+
+  const formatTimeRange = (startTime?: string, endTime?: string) => {
+    if (!startTime || !endTime) return null;
+
+    const formatTime = (time: string) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`;
     };
-    return category ? categories[category] : { title: 'Tasks', color: '#6C5DD3', gradient: '' };
-  };
 
-  const categoryInfo = getCategoryInfo();
+    return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+  };
 
   const TaskCard = ({ task }: { task: any }) => (
     <Card
@@ -67,7 +114,9 @@ export const TaskListPage = () => {
         <Group gap="xs">
           <IconClock size={16} color="#999" />
           <Text size="sm" c="dimmed">
-            {task.dueDate
+            {task.startTime && task.endTime
+              ? `Today, ${formatTimeRange(task.startTime, task.endTime)}`
+              : task.dueDate
               ? new Date(task.dueDate).toLocaleString('en-US', {
                   month: 'short',
                   day: 'numeric',
@@ -81,6 +130,12 @@ export const TaskListPage = () => {
           <Avatar color="blue" radius="xl" size="sm">
             U
           </Avatar>
+          <Avatar color="orange" radius="xl" size="sm">
+            A
+          </Avatar>
+          <Avatar color="pink" radius="xl" size="sm">
+            B
+          </Avatar>
         </Avatar.Group>
       </Group>
 
@@ -88,55 +143,136 @@ export const TaskListPage = () => {
         {task.title}
       </Title>
 
-      {task.description && (
-        <Text size="sm" c="dimmed" lineClamp={2} mb="sm">
-          {task.description}
-        </Text>
-      )}
-
-      <Group gap="xs">
-        <Badge variant="light" size="sm" color="violet">
-          {task.priority}
+      <Group gap="sm">
+        <Badge variant="light" color="violet" leftSection="📋">
+          3/9
         </Badge>
-        {task.category && (
-          <Badge variant="outline" size="sm">
-            {task.category}
-          </Badge>
-        )}
+        <Badge variant="light" color="violet" leftSection="💬">
+          12
+        </Badge>
+        <ActionIcon
+          size="xl"
+          radius="xl"
+          variant="light"
+          color="violet"
+          style={{ marginLeft: 'auto' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" />
+          </svg>
+        </ActionIcon>
       </Group>
     </Card>
   );
+
+  // Get tasks for the current view (filtered by date if date param exists)
+  const getTasksForCurrentDate = () => {
+    if (!targetDate) {
+      // If no date filter, show today's tasks
+      return tasks.filter(t => {
+        if (!t.dueDate || t.status === 'COMPLETED') return false;
+        return new Date(t.dueDate).toDateString() === today.toDateString();
+      });
+    }
+    // If date filter exists, use filtered tasks
+    return filteredTasks.filter(t => t.status !== 'COMPLETED');
+  };
+
+  const tasksForDate = getTasksForCurrentDate();
+
+  const categoryCards = [
+    {
+      title: 'Work',
+      count: tasksForDate.filter((t) => t.category === 'WORK').length,
+      color: '#6C5DD3',
+      gradient: 'linear-gradient(135deg, #6C5DD3 0%, #8B7FE8 100%)',
+      category: 'WORK',
+    },
+    {
+      title: 'Business',
+      count: tasksForDate.filter((t) => t.category === 'SHOPPING').length,
+      color: '#FFD93D',
+      gradient: 'linear-gradient(135deg, #FFD93D 0%, #FFE566 100%)',
+      category: 'SHOPPING',
+    },
+    {
+      title: 'Personal',
+      count: tasksForDate.filter((t) => t.category === 'PERSONAL').length,
+      color: '#4ADE80',
+      gradient: 'linear-gradient(135deg, #4ADE80 0%, #6EE7A8 100%)',
+      category: 'PERSONAL',
+    },
+  ];
 
   return (
     <Container size="xl" px="md">
       <Stack gap="xl">
         {/* Header */}
-        <Group>
-          <ActionIcon variant="subtle" size="lg" onClick={() => navigate('/dashboard')}>
-            <IconChevronLeft size={24} />
+        <Group justify="space-between" align="center">
+          <Group gap="sm">
+            <ActionIcon variant="subtle" size="lg" onClick={() => navigate('/dashboard')}>
+              <IconChevronLeft size={24} />
+            </ActionIcon>
+            <Title order={2} size="h2" fw={600}>
+              Tasks
+            </Title>
+          </Group>
+          <ActionIcon variant="subtle" size="lg">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
+              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+              <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
+            </svg>
           </ActionIcon>
-          <Title order={2}>{categoryInfo.title}</Title>
         </Group>
 
-        {/* Category Header Card */}
-        {category && (
-          <Card
-            p="xl"
-            radius="xl"
-            style={{
-              background: categoryInfo.gradient,
-              color: category === 'SHOPPING' ? '#333' : 'white',
-              textAlign: 'center',
-            }}
-          >
-            <Title order={2} c="inherit" size="h3" mb="xs">
-              {categoryInfo.title.replace(' Tasks', '')}
-            </Title>
-            <Text size="lg" opacity={0.9}>
-              {filteredTasks.length} Remaining Task{filteredTasks.length !== 1 ? 's' : ''}
-            </Text>
-          </Card>
-        )}
+        {/* Category Cards */}
+        <Group grow={!category}>
+          {categoryCards.map((cat) => {
+            // If a category is selected, only show that category
+            if (category && cat.category !== category) {
+              return null;
+            }
+
+            return (
+              <Card
+                key={cat.title}
+                p="md"
+                radius="xl"
+                style={{
+                  background: cat.gradient,
+                  color: cat.title === 'Business' ? '#333' : 'white',
+                  cursor: 'pointer',
+                  minHeight: '100px',
+                  // When a category is selected, make it take full width
+                  ...(category ? { flex: 1, width: '100%' } : {}),
+                }}
+                onClick={() => {
+                  // If clicking the already selected category, deselect it
+                  if (category === cat.category) {
+                    const params = new URLSearchParams(searchParams);
+                    params.delete('category');
+                    navigate(`/tasks?${params.toString()}`);
+                  } else {
+                    // Otherwise, select this category
+                    const params = new URLSearchParams(searchParams);
+                    params.set('category', cat.category);
+                    navigate(`/tasks?${params.toString()}`);
+                  }
+                }}
+              >
+                <Stack gap="xs" align="center">
+                  <Title order={3} c="inherit" size="h5" fw={600}>
+                    {cat.title}
+                  </Title>
+                  <Text size="lg" fw={500} opacity={0.9}>
+                    {cat.count} remaining task{cat.count !== 1 ? 's' : ''}
+                  </Text>
+                </Stack>
+              </Card>
+            );
+          })}
+        </Group>
 
         {/* Tabs */}
         <Tabs defaultValue="dueSoon" variant="pills">

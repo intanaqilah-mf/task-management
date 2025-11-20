@@ -3,11 +3,9 @@ import {
   Title,
   Text,
   Button,
-  Grid,
   Card,
   Group,
   Stack,
-  ThemeIcon,
   Badge,
   Avatar,
   ActionIcon,
@@ -15,9 +13,6 @@ import {
 } from '@mantine/core';
 import {
   IconPlus,
-  IconBriefcase,
-  IconShoppingCart,
-  IconUser,
   IconClock,
   IconChevronRight,
   IconCheck,
@@ -29,44 +24,11 @@ export const DashboardPage = () => {
   const { tasks } = useTasks();
   const navigate = useNavigate();
 
-  const tasksByCategory = {
-    WORK: tasks.filter((t) => t.category === 'WORK'),
-    PERSONAL: tasks.filter((t) => t.category === 'PERSONAL'),
-    SHOPPING: tasks.filter((t) => t.category === 'SHOPPING'),
-  };
-
   const tasksByStatus = {
     TODO: tasks.filter((t) => t.status === 'TODO'),
     IN_PROGRESS: tasks.filter((t) => t.status === 'IN_PROGRESS'),
     COMPLETED: tasks.filter((t) => t.status === 'COMPLETED'),
   };
-
-  const categoryCards = [
-    {
-      title: 'Work',
-      count: tasksByCategory.WORK.length,
-      color: '#6C5DD3',
-      gradient: 'linear-gradient(135deg, #6C5DD3 0%, #8B7FE8 100%)',
-      icon: IconBriefcase,
-      category: 'WORK',
-    },
-    {
-      title: 'Business',
-      count: tasksByCategory.SHOPPING.length,
-      color: '#FFD93D',
-      gradient: 'linear-gradient(135deg, #FFD93D 0%, #FFE566 100%)',
-      icon: IconShoppingCart,
-      category: 'SHOPPING',
-    },
-    {
-      title: 'Personal',
-      count: tasksByCategory.PERSONAL.length,
-      color: '#4ADE80',
-      gradient: 'linear-gradient(135deg, #4ADE80 0%, #6EE7A8 100%)',
-      icon: IconUser,
-      category: 'PERSONAL',
-    },
-  ];
 
   // Get the closest ongoing or upcoming task
   const getClosestTask = () => {
@@ -216,77 +178,6 @@ export const DashboardPage = () => {
           </Paper>
         </div>
 
-        {/* Category Cards */}
-        <Grid>
-          {categoryCards.map((cat) => (
-            <Grid.Col key={cat.title} span={{ base: 12, xs: 6, sm: 4 }}>
-              <Card
-                p="lg"
-                radius="xl"
-                style={{
-                  background: cat.gradient,
-                  color: cat.title === 'Business' ? '#333' : 'white',
-                  cursor: 'pointer',
-                  minHeight: '160px',
-                  position: 'relative',
-                }}
-                onClick={() => navigate(`/tasks?category=${cat.category}`)}
-              >
-                <Stack justify="space-between" h="100%">
-                  <Group justify="space-between">
-                    <ThemeIcon
-                      size="lg"
-                      radius="md"
-                      variant="white"
-                      c={cat.color}
-                      style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}
-                    >
-                      <cat.icon size={20} />
-                    </ThemeIcon>
-                    <ActionIcon
-                      variant="subtle"
-                      c={cat.title === 'Business' ? '#333' : 'white'}
-                      size="sm"
-                    >
-                      <IconChevronRight size={18} />
-                    </ActionIcon>
-                  </Group>
-                  <div>
-                    <Title order={3} c="inherit" size="h4">
-                      {cat.title}
-                    </Title>
-                    <Text size="sm" opacity={0.9}>
-                      {cat.count} remaining task{cat.count !== 1 ? 's' : ''}
-                    </Text>
-                  </div>
-                </Stack>
-              </Card>
-            </Grid.Col>
-          ))}
-
-          {/* Add Category Card */}
-          <Grid.Col span={{ base: 12, xs: 6, sm: 4 }}>
-            <Card
-              p="lg"
-              radius="xl"
-              withBorder
-              style={{
-                minHeight: '160px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                border: '2px dashed #dee2e6',
-              }}
-              onClick={() => navigate('/tasks/new')}
-            >
-              <ActionIcon size="xl" radius="xl" variant="light" color="gray">
-                <IconPlus size={24} />
-              </ActionIcon>
-            </Card>
-          </Grid.Col>
-        </Grid>
-
         {/* Closest Task */}
         {getClosestTask() && (
           <div>
@@ -295,7 +186,11 @@ export const DashboardPage = () => {
               radius="lg"
               withBorder
               style={{ cursor: 'pointer' }}
-              onClick={() => navigate(`/tasks/${getClosestTask()!.id}`)}
+              onClick={() => {
+                const task = getClosestTask()!;
+                const date = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
+                navigate(`/tasks?date=${date}`);
+              }}
             >
               <Group justify="space-between" mb="sm">
                 <Group gap="xs">
@@ -350,7 +245,10 @@ export const DashboardPage = () => {
                 radius="lg"
                 withBorder
                 style={{ cursor: 'pointer' }}
-                onClick={() => navigate(`/tasks/${task.id}`)}
+                onClick={() => {
+                  const date = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
+                  navigate(`/tasks?date=${date}`);
+                }}
               >
                 <Group justify="space-between" mb="sm">
                   <Group gap="xs">
@@ -430,7 +328,10 @@ export const DashboardPage = () => {
                   radius="lg"
                   withBorder
                   style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/tasks/${task.id}`)}
+                  onClick={() => {
+                    const date = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
+                    navigate(`/tasks?date=${date}`);
+                  }}
                 >
                   <Group justify="space-between" mb="sm">
                     <Group gap="xs">
