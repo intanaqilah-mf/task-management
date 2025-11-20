@@ -9,12 +9,11 @@ import {
   ActionIcon,
   Paper,
   Progress,
-  Avatar,
   Checkbox,
   Button,
   Modal,
 } from '@mantine/core';
-import { IconChevronLeft, IconCalendar, IconClock, IconPlus, IconCheck } from '@tabler/icons-react';
+import { IconChevronLeft, IconCalendar, IconClock, IconCheck } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTasks } from '@/hooks/useTasks';
 import { TaskForm } from '@/components/forms/TaskForm';
@@ -27,7 +26,7 @@ export const TaskDetailPage = () => {
   const { tasks, updateTask, selectedTask, setSelectedTask } = useTasks();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const task = tasks.find((t) => t.id === id);
+  const task = tasks.find((t) => String(t.id) === id);
 
   useEffect(() => {
     if (task) {
@@ -63,17 +62,28 @@ export const TaskDetailPage = () => {
     setSelectedTask(null);
   };
 
-  // Mock subtasks - in real app, this would come from backend
-  const subtasks = [
-    { id: '1', title: 'Identify Target Audience', completed: false },
-    { id: '2', title: 'Conduct User Research', completed: false },
-    { id: '3', title: 'Analyze Competitor Designs', completed: true },
-    { id: '4', title: 'Research', completed: true },
-    { id: '5', title: 'Review Project Requirements', completed: true },
-  ];
+  // Get subtasks from task
+  const [subtasks, setSubtasks] = useState(task?.subtasks || []);
+
+  // Update subtasks when task changes
+  useEffect(() => {
+    if (task?.subtasks) {
+      setSubtasks(task.subtasks);
+    }
+  }, [task]);
 
   const completedCount = subtasks.filter((s) => s.completed).length;
-  const progressPercent = Math.round((completedCount / subtasks.length) * 100);
+  const progressPercent = subtasks.length > 0 ? Math.round((completedCount / subtasks.length) * 100) : 0;
+
+  const toggleSubtask = (subtaskId: number | undefined) => {
+    if (!subtaskId) return;
+    setSubtasks(prev =>
+      prev.map(st =>
+        st.id === subtaskId ? { ...st, completed: !st.completed } : st
+      )
+    );
+    // TODO: Update subtask on backend
+  };
 
   return (
     <Container size="xl" px="md">
@@ -172,64 +182,33 @@ export const TaskDetailPage = () => {
           <Progress value={progressPercent} size="sm" radius="xl" color="yellow" />
         </Paper>
 
-        {/* Assignees */}
-        <div>
-          <Title order={3} size="h4" mb="md">
-            Assignee
-          </Title>
-          <Group gap="md">
-            <Avatar color="blue" radius="xl" size="lg">
-              K
-            </Avatar>
-            <div>
-              <Text fw={500}>Kelvin</Text>
-            </div>
-          </Group>
-          <Group gap="md" mt="sm">
-            <Avatar color="pink" radius="xl" size="lg">
-              A
-            </Avatar>
-            <div>
-              <Text fw={500}>Amanda</Text>
-            </div>
-          </Group>
-          <ActionIcon
-            mt="md"
-            size="xl"
-            radius="xl"
-            variant="light"
-            color="violet"
-            style={{ width: '100%', maxWidth: '60px' }}
-          >
-            <IconPlus size={24} />
-          </ActionIcon>
-        </div>
-
         {/* Task List / Subtasks */}
-        <div>
-          <Title order={3} size="h4" mb="md">
-            Task List
-          </Title>
-          <Stack gap="md">
-            {subtasks.map((subtask) => (
-              <Group key={subtask.id} justify="space-between">
-                <Text
-                  c={subtask.completed ? 'dimmed' : 'inherit'}
-                  td={subtask.completed ? 'line-through' : 'none'}
-                >
-                  {subtask.title}
-                </Text>
-                <Checkbox
-                  checked={subtask.completed}
-                  radius="xl"
-                  size="lg"
-                  color="violet"
-                  readOnly
-                />
-              </Group>
-            ))}
-          </Stack>
-        </div>
+        {subtasks.length > 0 && (
+          <div>
+            <Title order={3} size="h4" mb="md">
+              Task List
+            </Title>
+            <Stack gap="md">
+              {subtasks.map((subtask) => (
+                <Group key={subtask.id} justify="space-between">
+                  <Text
+                    c={subtask.completed ? 'dimmed' : 'inherit'}
+                    td={subtask.completed ? 'line-through' : 'none'}
+                  >
+                    {subtask.title}
+                  </Text>
+                  <Checkbox
+                    checked={subtask.completed}
+                    onChange={() => toggleSubtask(subtask.id)}
+                    radius="xl"
+                    size="lg"
+                    color="violet"
+                  />
+                </Group>
+              ))}
+            </Stack>
+          </div>
+        )}
 
         {/* Status Badges */}
         <Group gap="xs">

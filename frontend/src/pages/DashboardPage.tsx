@@ -39,6 +39,7 @@ export const DashboardPage = () => {
         endTime: taskData.endTime,
         status: 'TODO',
         priority: 'MEDIUM',
+        subtasks: taskData.subtasks || [],
       });
       setIsCreateModalOpen(false);
     } catch (error) {

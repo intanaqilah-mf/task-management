@@ -30,9 +30,17 @@ export const TaskCategory = {
 
 export type TaskCategory = typeof TaskCategory[keyof typeof TaskCategory];
 
+// SubTask Interface
+export interface SubTask {
+  id?: number;
+  title: string;
+  completed: boolean;
+  taskId?: number;
+}
+
 // Task Interface
 export interface Task {
-  id: string;
+  id: number;
   title: string;
   description?: string;
   status: TaskStatus;
@@ -43,7 +51,8 @@ export interface Task {
   endTime?: string;
   createdAt: string;
   updatedAt: string;
-  userId: string;
+  userId: number;
+  subtasks?: SubTask[];
 }
 
 // Task Creation/Update Payloads
@@ -56,10 +65,11 @@ export interface CreateTaskPayload {
   dueDate?: string;
   startTime?: string;
   endTime?: string;
+  subtasks?: SubTask[];
 }
 
 export interface UpdateTaskPayload extends Partial<CreateTaskPayload> {
-  id: string;
+  id: number;
 }
 
 // User Interface

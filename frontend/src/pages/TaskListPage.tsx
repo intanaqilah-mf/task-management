@@ -24,6 +24,7 @@ export const TaskListPage = () => {
         endTime: taskData.endTime,
         status: 'TODO',
         priority: 'MEDIUM',
+        subtasks: taskData.subtasks || [],
       });
       setIsCreateModalOpen(false);
     } catch (error) {
@@ -55,16 +56,30 @@ export const TaskListPage = () => {
 
   // Classify today's tasks based on time
   const dueSoon = filteredTasks.filter((t) => {
-    if (!t.startTime) return false;
+    // Tasks without time are shown in "Due Soon"
+    if (!t.startTime) return true;
 
-    // Check if it's starting soon (within next 2 hours)
+    // Check if it's ongoing or starting soon (within next 2 hours)
     const [startHour, startMin] = t.startTime.split(':').map(Number);
     const startTimeMinutes = startHour * 60 + startMin;
+
+    // If task has end time, check if it's currently ongoing
+    if (t.endTime) {
+      const [endHour, endMin] = t.endTime.split(':').map(Number);
+      const endTimeMinutes = endHour * 60 + endMin;
+      // Task is ongoing if current time is between start and end
+      if (currentTime >= startTimeMinutes && currentTime <= endTimeMinutes) {
+        return true;
+      }
+    }
+
+    // Otherwise, check if it's starting soon (within next 2 hours)
     const timeDiff = startTimeMinutes - currentTime;
     return timeDiff > 0 && timeDiff <= 120; // Within next 2 hours
   });
 
   const upcoming = filteredTasks.filter((t) => {
+    // Tasks without time are not shown in "Upcoming"
     if (!t.startTime) return false;
 
     // Check if it's upcoming (more than 2 hours away)
@@ -75,6 +90,7 @@ export const TaskListPage = () => {
   });
 
   const overdue = filteredTasks.filter((t) => {
+    // Tasks without time are not shown in "Overdue"
     if (!t.endTime) return false;
 
     // Check if end time has passed

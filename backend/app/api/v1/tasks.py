@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from app.db.database import get_db
 from app.models.task import Task
+from app.models.subtask import SubTask
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskUpdate, Task as TaskSchema
 from app.api.dependencies import get_current_user
@@ -59,19 +60,36 @@ def create_task(
 ):
     """
     Create a new task.
-    
+
     - **title**: Task title (required)
     - **description**: Task description (optional)
     - **status**: Task status (default: TODO)
     - **priority**: Task priority (default: MEDIUM)
     - **category**: Task category (optional)
     - **due_date**: Task due date (optional)
+    - **subtasks**: List of subtasks (optional)
     """
+    # Extract subtasks from task_data
+    subtasks_data = task_data.subtasks
+    task_dict = task_data.dict(exclude={'subtasks'})
+
+    # Create task
     db_task = Task(
-        **task_data.dict(),
+        **task_dict,
         user_id=current_user.id
     )
     db.add(db_task)
+    db.flush()  # Flush to get task.id
+
+    # Create subtasks
+    if subtasks_data:
+        for subtask_data in subtasks_data:
+            db_subtask = SubTask(
+                **subtask_data.dict(),
+                task_id=db_task.id
+            )
+            db.add(db_subtask)
+
     db.commit()
     db.refresh(db_task)
     return db_task

@@ -23,3 +23,4 @@ class Task(Base):
 
     # Relationships
     user = relationship("User", back_populates="tasks")
+    subtasks = relationship("SubTask", back_populates="task", cascade="all, delete-orphan")

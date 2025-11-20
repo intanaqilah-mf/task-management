@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
+from app.schemas.subtask import SubTask, SubTaskCreate
 
 
 class TaskBase(BaseModel):
@@ -20,7 +21,7 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     """Schema for creating a task."""
-    pass
+    subtasks: Optional[List[SubTaskCreate]] = []
 
 
 class TaskUpdate(BaseModel):
@@ -52,6 +53,7 @@ class Task(BaseModel):
     user_id: int = Field(..., alias="userId")
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
+    subtasks: List[SubTask] = []
 
     class Config:
         from_attributes = True

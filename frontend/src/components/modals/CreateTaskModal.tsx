@@ -14,8 +14,9 @@ import {
 import { IconPlus, IconTrash } from '@tabler/icons-react';
 
 interface SubTask {
-  id: string;
+  id?: string;
   title: string;
+  completed?: boolean;
 }
 
 interface CreateTaskModalProps {
@@ -37,7 +38,7 @@ export const CreateTaskModal = ({ opened, onClose, onSubmit }: CreateTaskModalPr
 
   const handleAddSubTask = () => {
     if (newSubTask.trim()) {
-      setSubTasks([...subTasks, { id: Date.now().toString(), title: newSubTask }]);
+      setSubTasks([...subTasks, { id: Date.now().toString(), title: newSubTask, completed: false }]);
       setNewSubTask('');
     }
   };
@@ -52,11 +53,14 @@ export const CreateTaskModal = ({ opened, onClose, onSubmit }: CreateTaskModalPr
       const taskData = {
         title,
         category,
-        dueDate,
+        dueDate: dueDate ? `${dueDate}T00:00:00` : undefined,
         startTime,
         endTime,
         description: notes,
-        subTasks,
+        subtasks: subTasks.map(st => ({
+          title: st.title,
+          completed: st.completed || false
+        })),
       };
       await onSubmit(taskData);
       handleClose();
@@ -91,13 +95,18 @@ export const CreateTaskModal = ({ opened, onClose, onSubmit }: CreateTaskModalPr
         </Text>
       }
       size="md"
-      centered
       styles={{
+        inner: {
+          paddingTop: '2rem',
+        },
         header: {
           paddingBottom: '1rem',
         },
         body: {
           paddingTop: 0,
+          paddingBottom: '2rem',
+          maxHeight: 'calc(100vh - 200px)',
+          overflowY: 'auto',
         },
       }}
     >
@@ -196,7 +205,7 @@ export const CreateTaskModal = ({ opened, onClose, onSubmit }: CreateTaskModalPr
                   size="sm"
                   color="red"
                   variant="subtle"
-                  onClick={() => handleRemoveSubTask(subTask.id)}
+                  onClick={() => subTask.id && handleRemoveSubTask(subTask.id)}
                 >
                   <IconTrash size={16} />
                 </ActionIcon>
