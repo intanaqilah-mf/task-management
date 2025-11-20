@@ -537,7 +537,7 @@ export const TaskListPage = () => {
               placeholder="Search tasks by title, description, category..."
             />
           </div>
-          <Menu shadow="md" width={200} withinPortal opened={filterMenuOpened} onChange={setFilterMenuOpened}>
+          <Menu shadow="md" width={200} opened={filterMenuOpened} onChange={setFilterMenuOpened}>
             <Menu.Target>
               <ActionIcon
                 variant="subtle"
@@ -565,7 +565,7 @@ export const TaskListPage = () => {
                       { value: 'LOW', label: 'LOW' },
                     ]}
                     clearable
-                    comboboxProps={{ withinPortal: true }}
+                    comboboxProps={{ withinPortal: false, zIndex: 1000 }}
                     renderOption={({ option }) => (
                       <Badge
                         color={
@@ -603,7 +603,7 @@ export const TaskListPage = () => {
                       { value: 'OTHER', label: 'Other' },
                     ]}
                     clearable
-                    comboboxProps={{ withinPortal: true }}
+                    comboboxProps={{ withinPortal: false, zIndex: 1000 }}
                     styles={{ root: { flex: 1 } }}
                   />
                 </Group>

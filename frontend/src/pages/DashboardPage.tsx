@@ -463,7 +463,7 @@ export const DashboardPage = () => {
               placeholder="Search tasks by title, description, category..."
             />
           </div>
-          <Menu shadow="md" width={200} withinPortal opened={filterMenuOpened} onChange={setFilterMenuOpened}>
+          <Menu shadow="md" width={200} opened={filterMenuOpened} onChange={setFilterMenuOpened}>
             <Menu.Target>
               <ActionIcon
                 variant="subtle"
