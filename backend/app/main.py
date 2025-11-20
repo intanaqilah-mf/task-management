@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.database import engine, Base
-from app.api.v1 import auth, tasks
+from app.api.v1 import auth, tasks, subtasks
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -28,6 +28,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
+app.include_router(subtasks.router, prefix="/api/subtasks", tags=["Subtasks"])
 
 
 @app.get("/", tags=["Root"])

@@ -19,6 +19,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { TaskForm } from '@/components/forms/TaskForm';
 import type { TaskFormData } from '@/utils/validation';
 import type { CreateTaskPayload } from '@/types';
+import { subtaskService } from '@/services/subtask.service';
 
 export const TaskDetailPage = () => {
   const { id } = useParams();
@@ -75,14 +76,34 @@ export const TaskDetailPage = () => {
   const completedCount = subtasks.filter((s) => s.completed).length;
   const progressPercent = subtasks.length > 0 ? Math.round((completedCount / subtasks.length) * 100) : 0;
 
-  const toggleSubtask = (subtaskId: number | undefined) => {
+  const toggleSubtask = async (subtaskId: number | undefined) => {
     if (!subtaskId) return;
+
+    // Find the subtask to get its current completed status
+    const subtask = subtasks.find(st => st.id === subtaskId);
+    if (!subtask) return;
+
+    const newCompletedStatus = !subtask.completed;
+
+    // Optimistically update UI
     setSubtasks(prev =>
       prev.map(st =>
-        st.id === subtaskId ? { ...st, completed: !st.completed } : st
+        st.id === subtaskId ? { ...st, completed: newCompletedStatus } : st
       )
     );
-    // TODO: Update subtask on backend
+
+    try {
+      // Update on backend
+      await subtaskService.updateSubtask(subtaskId, newCompletedStatus);
+    } catch (error) {
+      console.error('Failed to update subtask:', error);
+      // Revert on error
+      setSubtasks(prev =>
+        prev.map(st =>
+          st.id === subtaskId ? { ...st, completed: !newCompletedStatus } : st
+        )
+      );
+    }
   };
 
   return (

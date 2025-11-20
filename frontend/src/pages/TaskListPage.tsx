@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Container, Title, Tabs, Card, Group, Text, Badge, Avatar, Stack, ActionIcon } from '@mantine/core';
-import { IconClock, IconChevronLeft } from '@tabler/icons-react';
+import { IconClock, IconChevronLeft, IconCheck } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -112,68 +112,119 @@ export const TaskListPage = () => {
     return `${formatTime(startTime)} - ${formatTime(endTime)}`;
   };
 
-  const TaskCard = ({ task }: { task: any }) => (
-    <Card
-      p="lg"
-      radius="lg"
-      withBorder
-      style={{ cursor: 'pointer' }}
-      onClick={() => navigate(`/tasks/${task.id}`)}
-    >
-      <Group justify="space-between" mb="sm">
-        <Group gap="xs">
-          <IconClock size={16} color="#999" />
-          <Text size="sm" c="dimmed">
-            {task.startTime && task.endTime
-              ? `Today, ${formatTimeRange(task.startTime, task.endTime)}`
-              : task.dueDate
-              ? new Date(task.dueDate).toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : 'No due date'}
-          </Text>
+  // Helper function to calculate task completion percentage
+  const getTaskCompletionPercent = (task: any) => {
+    if (!task.subtasks || task.subtasks.length === 0) return 0;
+    const completedCount = task.subtasks.filter((s: any) => s.completed).length;
+    return Math.round((completedCount / task.subtasks.length) * 100);
+  };
+
+  // Helper function to sort tasks - completed tasks go to bottom
+  const sortTasks = (tasksToSort: any[]) => {
+    return [...tasksToSort].sort((a, b) => {
+      const aPercent = getTaskCompletionPercent(a);
+      const bPercent = getTaskCompletionPercent(b);
+
+      // If both are 100% or both are not 100%, maintain original order
+      if ((aPercent === 100 && bPercent === 100) || (aPercent !== 100 && bPercent !== 100)) {
+        return 0;
+      }
+
+      // Move 100% tasks to bottom
+      if (aPercent === 100) return 1;
+      if (bPercent === 100) return -1;
+
+      return 0;
+    });
+  };
+
+  const TaskCard = ({ task }: { task: any }) => {
+    const completionPercent = getTaskCompletionPercent(task);
+    const isCompleted = completionPercent === 100;
+    const completedCount = task.subtasks?.filter((s: any) => s.completed).length || 0;
+    const totalSubtasks = task.subtasks?.length || 0;
+
+    return (
+      <Card
+        p="lg"
+        radius="lg"
+        withBorder
+        style={{
+          cursor: 'pointer',
+          opacity: isCompleted ? 0.6 : 1,
+          backgroundColor: isCompleted ? '#f5f5f5' : 'white',
+        }}
+        onClick={() => navigate(`/tasks/${task.id}`)}
+      >
+        <Group justify="space-between" mb="sm">
+          <Group gap="xs">
+            <IconClock size={16} color="#999" />
+            <Text
+              size="sm"
+              c="dimmed"
+              td={isCompleted ? 'line-through' : 'none'}
+            >
+              {task.startTime && task.endTime
+                ? `Today, ${formatTimeRange(task.startTime, task.endTime)}`
+                : task.dueDate
+                ? new Date(task.dueDate).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : 'No due date'}
+            </Text>
+          </Group>
+          <Avatar.Group>
+            <Avatar color="blue" radius="xl" size="sm">
+              U
+            </Avatar>
+            <Avatar color="orange" radius="xl" size="sm">
+              A
+            </Avatar>
+            <Avatar color="pink" radius="xl" size="sm">
+              B
+            </Avatar>
+          </Avatar.Group>
         </Group>
-        <Avatar.Group>
-          <Avatar color="blue" radius="xl" size="sm">
-            U
-          </Avatar>
-          <Avatar color="orange" radius="xl" size="sm">
-            A
-          </Avatar>
-          <Avatar color="pink" radius="xl" size="sm">
-            B
-          </Avatar>
-        </Avatar.Group>
-      </Group>
 
-      <Title order={4} size="h5" mb="sm">
-        {task.title}
-      </Title>
-
-      <Group gap="sm">
-        <Badge variant="light" color="violet" leftSection="📋">
-          3/9
-        </Badge>
-        <Badge variant="light" color="violet" leftSection="💬">
-          12
-        </Badge>
-        <ActionIcon
-          size="xl"
-          radius="xl"
-          variant="light"
-          color="violet"
-          style={{ marginLeft: 'auto' }}
+        <Title
+          order={4}
+          size="h5"
+          mb="sm"
+          c={isCompleted ? 'dimmed' : 'inherit'}
+          td={isCompleted ? 'line-through' : 'none'}
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" />
-          </svg>
-        </ActionIcon>
-      </Group>
-    </Card>
-  );
+          {task.title}
+        </Title>
+
+        <Group gap="sm">
+          <Badge variant="light" color="violet" leftSection="📋">
+            {completedCount}/{totalSubtasks}
+          </Badge>
+          <Badge variant="light" color="violet" leftSection="💬">
+            12
+          </Badge>
+          <ActionIcon
+            size="xl"
+            radius="xl"
+            variant="light"
+            color={isCompleted ? 'green' : 'violet'}
+            style={{ marginLeft: 'auto' }}
+          >
+            {isCompleted ? (
+              <IconCheck size={20} />
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            )}
+          </ActionIcon>
+        </Group>
+      </Card>
+    );
+  };
 
   // Use target date's tasks for category counts (before category filtering)
   const categoryCards = [
@@ -282,7 +333,7 @@ export const TaskListPage = () => {
           <Tabs.Panel value="dueSoon" pt="xl">
             <Stack gap="md">
               {dueSoon.length > 0 ? (
-                dueSoon.map((task) => <TaskCard key={task.id} task={task} />)
+                sortTasks(dueSoon).map((task) => <TaskCard key={task.id} task={task} />)
               ) : (
                 <Card p="xl" radius="lg" withBorder style={{ textAlign: 'center' }}>
                   <Text c="dimmed">No tasks due soon</Text>
@@ -294,7 +345,7 @@ export const TaskListPage = () => {
           <Tabs.Panel value="upcoming" pt="xl">
             <Stack gap="md">
               {upcoming.length > 0 ? (
-                upcoming.map((task) => <TaskCard key={task.id} task={task} />)
+                sortTasks(upcoming).map((task) => <TaskCard key={task.id} task={task} />)
               ) : (
                 <Card p="xl" radius="lg" withBorder style={{ textAlign: 'center' }}>
                   <Text c="dimmed">No upcoming tasks</Text>
@@ -306,7 +357,7 @@ export const TaskListPage = () => {
           <Tabs.Panel value="overdue" pt="xl">
             <Stack gap="md">
               {overdue.length > 0 ? (
-                overdue.map((task) => <TaskCard key={task.id} task={task} />)
+                sortTasks(overdue).map((task) => <TaskCard key={task.id} task={task} />)
               ) : (
                 <Card p="xl" radius="lg" withBorder style={{ textAlign: 'center' }}>
                   <Text c="dimmed">No overdue tasks</Text>
