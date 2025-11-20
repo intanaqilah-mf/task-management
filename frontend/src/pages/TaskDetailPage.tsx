@@ -12,28 +12,64 @@ import {
   Checkbox,
   Button,
   Modal,
+  TextInput,
+  Textarea,
+  Select,
+  Divider,
 } from '@mantine/core';
-import { IconChevronLeft, IconCalendar, IconClock, IconCheck } from '@tabler/icons-react';
+import { IconChevronLeft, IconCalendar, IconClock, IconCheck, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTasks } from '@/hooks/useTasks';
-import { TaskForm } from '@/components/forms/TaskForm';
-import type { TaskFormData } from '@/utils/validation';
-import type { CreateTaskPayload } from '@/types';
 import { subtaskService } from '@/services/subtask.service';
+import type { TaskCategory } from '@/types';
+
+interface SubTask {
+  id?: number;
+  title: string;
+  completed?: boolean;
+}
 
 export const TaskDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { tasks, updateTask, selectedTask, setSelectedTask } = useTasks();
+  const { tasks, updateTask } = useTasks();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const task = tasks.find((t) => String(t.id) === id);
 
+  // Get subtasks from task - MUST be declared before any early returns
+  const [subtasks, setSubtasks] = useState(task?.subtasks || []);
+
+  // Edit form state
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState<TaskCategory | ''>('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editSubTasks, setEditSubTasks] = useState<SubTask[]>([]);
+  const [newSubTask, setNewSubTask] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update subtasks when task changes
   useEffect(() => {
-    if (task) {
-      setSelectedTask(task);
+    if (task?.subtasks) {
+      setSubtasks(task.subtasks);
     }
-  }, [task, setSelectedTask]);
+  }, [task]);
+
+  // Populate edit form when modal opens
+  useEffect(() => {
+    if (isEditModalOpen && task) {
+      setEditTitle(task.title);
+      setEditCategory(task.category || '');
+      setEditDueDate(task.dueDate ? (typeof task.dueDate === 'string' ? task.dueDate.split('T')[0] : task.dueDate) : '');
+      setEditStartTime(task.startTime || '');
+      setEditEndTime(task.endTime || '');
+      setEditNotes(task.description || '');
+      setEditSubTasks(task.subtasks || []);
+    }
+  }, [isEditModalOpen, task]);
 
   if (!task) {
     return (
@@ -56,22 +92,49 @@ export const TaskDetailPage = () => {
 
   const daysLeft = getDaysLeft();
 
-  const handleEditTask = async (data: TaskFormData) => {
-    if (!task) return;
-    await updateTask({ ...(data as CreateTaskPayload), id: task.id });
-    setIsEditModalOpen(false);
-    setSelectedTask(null);
+  const handleAddSubTask = () => {
+    if (newSubTask.trim()) {
+      setEditSubTasks([...editSubTasks, { title: newSubTask, completed: false }]);
+      setNewSubTask('');
+    }
   };
 
-  // Get subtasks from task
-  const [subtasks, setSubtasks] = useState(task?.subtasks || []);
+  const handleRemoveSubTask = (index: number) => {
+    setEditSubTasks(editSubTasks.filter((_, i) => i !== index));
+  };
 
-  // Update subtasks when task changes
-  useEffect(() => {
-    if (task?.subtasks) {
-      setSubtasks(task.subtasks);
+  const handleEditTask = async () => {
+    if (!task) return;
+    setIsSubmitting(true);
+    try {
+      await updateTask({
+        id: task.id,
+        title: editTitle,
+        description: editNotes,
+        category: (editCategory as TaskCategory) || undefined,
+        dueDate: editDueDate ? `${editDueDate}T00:00:00` : undefined,
+        startTime: editStartTime,
+        endTime: editEndTime,
+        status: task.status,
+        priority: task.priority,
+        subtasks: editSubTasks.map(st => ({
+          title: st.title,
+          completed: st.completed || false
+        })),
+      });
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error('Error updating task:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [task]);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setNewSubTask('');
+    setIsSubmitting(false);
+  };
 
   const completedCount = subtasks.filter((s) => s.completed).length;
   const progressPercent = subtasks.length > 0 ? Math.round((completedCount / subtasks.length) * 100) : 0;
@@ -110,43 +173,46 @@ export const TaskDetailPage = () => {
     <Container size="xl" px="md">
       <Stack gap="xl">
         {/* Header */}
-        <Group justify="space-between">
+        <Group justify="space-between" align="flex-start">
           <ActionIcon variant="subtle" size="lg" onClick={() => navigate(-1)}>
             <IconChevronLeft size={24} />
           </ActionIcon>
-          <Title order={2}>Detail Task</Title>
+          <Stack gap="xs" align="center" style={{ flex: 1 }}>
+            <Title order={2}>{task.title}</Title>
+            {task.description && (
+              <Text c="dimmed" size="sm" ta="center">
+                {task.description}
+              </Text>
+            )}
+          </Stack>
           <ActionIcon variant="subtle" size="lg" onClick={() => setIsEditModalOpen(true)}>
             <Text size="xl">⋯</Text>
           </ActionIcon>
         </Group>
 
-        {/* Days Left Badge */}
-        {daysLeft !== null && (
-          <Badge
-            size="lg"
-            radius="md"
-            variant="light"
-            color={daysLeft < 0 ? 'red' : daysLeft <= 2 ? 'orange' : 'blue'}
-            style={{ alignSelf: 'flex-start' }}
-          >
-            {daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue!` : `${daysLeft} days left!`}
-          </Badge>
-        )}
-
-        {/* Task Title & Description */}
-        <div>
-          <Title order={1} size="h2" mb="sm">
-            {task.title}
-          </Title>
-          {task.description && (
-            <Text c="dimmed" size="sm">
-              {task.description}
-            </Text>
+        {/* All Badges */}
+        <Group gap="xs" wrap="wrap">
+          {daysLeft !== null && (
+            <Badge
+              size="lg"
+              radius="md"
+              variant="light"
+              color={daysLeft < 0 ? 'red' : daysLeft <= 2 ? 'orange' : 'blue'}
+            >
+              {daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue!` : `${daysLeft} days left!`}
+            </Badge>
           )}
-        </div>
-
-        {/* Date & Time */}
-        <Group gap="md">
+          <Badge variant="light" size="lg" color="blue">
+            {task.status.replace('_', ' ')}
+          </Badge>
+          <Badge variant="light" size="lg" color="violet">
+            {task.priority}
+          </Badge>
+          {task.category && (
+            <Badge variant="outline" size="lg">
+              {task.category}
+            </Badge>
+          )}
           {task.dueDate && (
             <>
               <Badge
@@ -230,45 +296,173 @@ export const TaskDetailPage = () => {
             </Stack>
           </div>
         )}
-
-        {/* Status Badges */}
-        <Group gap="xs">
-          <Badge variant="light" size="lg" color="blue">
-            {task.status.replace('_', ' ')}
-          </Badge>
-          <Badge variant="light" size="lg" color="violet">
-            {task.priority}
-          </Badge>
-          {task.category && (
-            <Badge variant="outline" size="lg">
-              {task.category}
-            </Badge>
-          )}
-        </Group>
       </Stack>
 
       {/* Edit Modal */}
       <Modal
         opened={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedTask(null);
+        onClose={handleCloseEditModal}
+        title={
+          <Text size="lg" fw={600}>
+            Edit Task
+          </Text>
+        }
+        size="md"
+        styles={{
+          inner: {
+            paddingTop: '2rem',
+          },
+          header: {
+            paddingBottom: '1rem',
+          },
+          body: {
+            paddingTop: 0,
+            paddingBottom: '2rem',
+            maxHeight: 'calc(100vh - 200px)',
+            overflowY: 'auto',
+          },
         }}
-        title="Edit Task"
-        centered
-        size="lg"
       >
-        {selectedTask && (
-          <TaskForm
-            task={selectedTask}
-            onSubmit={handleEditTask}
-            onCancel={() => {
-              setIsEditModalOpen(false);
-              setSelectedTask(null);
+        <Stack gap="md">
+          {/* Task Title */}
+          <TextInput
+            label="Task Title"
+            placeholder="Research and Planning"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            required
+            styles={{
+              label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
             }}
-            isLoading={false}
           />
-        )}
+
+          {/* Project Folder (Category) */}
+          <Select
+            label="Project Folder"
+            placeholder="Select category"
+            value={editCategory}
+            onChange={(value) => setEditCategory((value as TaskCategory) || '')}
+            data={[
+              { value: 'PERSONAL', label: 'Personal' },
+              { value: 'WORK', label: 'Work' },
+              { value: 'SHOPPING', label: 'Business' },
+            ]}
+            styles={{
+              label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+            }}
+          />
+
+          {/* Due Date */}
+          <TextInput
+            label="Due Date"
+            type="date"
+            placeholder="Pick date"
+            value={editDueDate}
+            onChange={(e) => setEditDueDate(e.target.value)}
+            styles={{
+              label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+            }}
+          />
+
+          {/* Time Range */}
+          <Group grow>
+            <TextInput
+              label="Start Time"
+              type="time"
+              value={editStartTime}
+              onChange={(e) => setEditStartTime(e.target.value)}
+              styles={{
+                label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+              }}
+            />
+
+            <TextInput
+              label="End Time"
+              type="time"
+              value={editEndTime}
+              onChange={(e) => setEditEndTime(e.target.value)}
+              styles={{
+                label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+              }}
+            />
+          </Group>
+
+          {/* Notes */}
+          <Textarea
+            label="Notes"
+            placeholder="Gather insights on user needs, market trends..."
+            value={editNotes}
+            onChange={(e) => setEditNotes(e.target.value)}
+            minRows={3}
+            styles={{
+              label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
+            }}
+          />
+
+          <Divider />
+
+          {/* Task List (Subtasks) */}
+          <div>
+            <Text size="sm" fw={500} mb="sm">
+              Task List
+            </Text>
+
+            {/* Existing Subtasks */}
+            <Stack gap="xs" mb="sm">
+              {editSubTasks.map((subTask, index) => (
+                <Group key={index} justify="space-between" wrap="nowrap">
+                  <Text size="sm" style={{ flex: 1 }}>
+                    {subTask.title}
+                  </Text>
+                  <ActionIcon
+                    size="sm"
+                    color="red"
+                    variant="subtle"
+                    onClick={() => handleRemoveSubTask(index)}
+                  >
+                    <IconTrash size={16} />
+                  </ActionIcon>
+                </Group>
+              ))}
+            </Stack>
+
+            {/* Add New Subtask */}
+            <Group gap="xs" wrap="nowrap">
+              <TextInput
+                placeholder="Add new subtask..."
+                value={newSubTask}
+                onChange={(e) => setNewSubTask(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddSubTask();
+                  }
+                }}
+                style={{ flex: 1 }}
+              />
+              <ActionIcon
+                size="lg"
+                color="violet"
+                variant="light"
+                onClick={handleAddSubTask}
+              >
+                <IconPlus size={18} />
+              </ActionIcon>
+            </Group>
+          </div>
+
+          {/* Submit Button */}
+          <Button
+            fullWidth
+            size="lg"
+            color="violet"
+            onClick={handleEditTask}
+            disabled={!editTitle.trim() || isSubmitting}
+            loading={isSubmitting}
+            mt="md"
+          >
+            Update Task
+          </Button>
+        </Stack>
       </Modal>
     </Container>
   );
