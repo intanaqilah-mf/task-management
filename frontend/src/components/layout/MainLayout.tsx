@@ -65,7 +65,6 @@ export const MainLayout = () => {
                   <Text size="xs" c="dimmed">{user?.email}</Text>
                 </div>
                 <ActionIcon variant="subtle" size="sm">
-                  <IconChevronDown size={16} />
                 </ActionIcon>
               </Group>
             </Menu.Target>
