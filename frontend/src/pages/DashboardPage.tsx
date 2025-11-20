@@ -26,6 +26,9 @@ import { useTasks } from '@/hooks/useTasks';
 import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { CreateTaskModal } from '@/components/modals/CreateTaskModal';
+import { TaskSearch } from '@/components/search/TaskSearch';
+import { DashboardSkeleton } from '@/components/ui/DashboardSkeleton';
+import { DueDateNotifications } from '@/components/notifications/DueDateNotifications';
 import type { TaskCategory } from '@/types';
 import { BASE_CONSTANTS, parseDateInMalaysiaTimezone } from '@/constants/base.constant';
 
@@ -36,13 +39,14 @@ interface SubTask {
 }
 
 export const DashboardPage = () => {
-  const { tasks, createTask, updateTask, deleteTask } = useTasks();
+  const { tasks, createTask, updateTask, deleteTask, isLoading } = useTasks();
   const navigate = useNavigate();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Edit form state
   const [editTitle, setEditTitle] = useState('');
@@ -54,6 +58,16 @@ export const DashboardPage = () => {
   const [editSubTasks, setEditSubTasks] = useState<SubTask[]>([]);
   const [newSubTask, setNewSubTask] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Show loading skeleton while fetching tasks
+  if (isLoading && tasks.length === 0) {
+    return (
+      <>
+        <DashboardSkeleton />
+        <BottomNav onCreateTask={() => setIsCreateModalOpen(true)} />
+      </>
+    );
+  }
 
   const handleOpenEditModal = (task: any, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -204,6 +218,23 @@ export const DashboardPage = () => {
     }
   };
 
+  // Filter tasks based on search query
+  const filterTasksBySearch = (tasksToFilter: any[]) => {
+    if (!searchQuery.trim()) return tasksToFilter;
+
+    const query = searchQuery.toLowerCase();
+    return tasksToFilter.filter((task) => {
+      const titleMatch = task.title?.toLowerCase().includes(query);
+      const descriptionMatch = task.description?.toLowerCase().includes(query);
+      const categoryMatch = task.category?.toLowerCase().includes(query);
+      const subtasksMatch = task.subtasks?.some((st: any) =>
+        st.title?.toLowerCase().includes(query)
+      );
+
+      return titleMatch || descriptionMatch || categoryMatch || subtasksMatch;
+    });
+  };
+
   const tasksByStatus = {
     TODO: tasks.filter((t) => t.status === 'TODO'),
     IN_PROGRESS: tasks.filter((t) => t.status === 'IN_PROGRESS'),
@@ -274,7 +305,7 @@ export const DashboardPage = () => {
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const closestTask = getClosestTask();
 
-    return tasks
+    const todaysTasks = tasks
       .filter((t) => {
         if (!t.dueDate) return false;
         if (closestTask && t.id === closestTask.id) return false;
@@ -285,6 +316,8 @@ export const DashboardPage = () => {
         if (!a.startTime || !b.startTime) return 0;
         return a.startTime.localeCompare(b.startTime);
       });
+
+    return filterTasksBySearch(todaysTasks);
   };
 
   // Get upcoming tasks grouped by date
@@ -305,8 +338,11 @@ export const DashboardPage = () => {
         return aDate.localeCompare(bDate);
       });
 
+    // Apply search filter
+    const filteredTasks = filterTasksBySearch(upcomingTasks);
+
     // Group by date
-    const grouped = upcomingTasks.reduce((acc, task) => {
+    const grouped = filteredTasks.reduce((acc, task) => {
       const dueDateStr = typeof task.dueDate === 'string' ? task.dueDate! : task.dueDate!;
       const date = parseDateInMalaysiaTimezone(dueDateStr).toLocaleDateString('en-US', {
         weekday: 'long',
@@ -317,7 +353,7 @@ export const DashboardPage = () => {
       if (!acc[date]) acc[date] = [];
       acc[date].push(task);
       return acc;
-    }, {} as Record<string, typeof tasks>);
+    }, {} as Record<string, any[]>);
 
     return grouped;
   };
@@ -363,6 +399,8 @@ export const DashboardPage = () => {
 
   return (
     <>
+      <DueDateNotifications />
+
       <Container size="xl" px="md" pb={100}>
         <Stack gap="xl">
           {/* Hero Section */}
@@ -406,6 +444,14 @@ export const DashboardPage = () => {
               </ActionIcon>
             </Group>
           </Paper>
+        </div>
+
+        {/* Search Tasks */}
+        <div>
+          <TaskSearch
+            onSearch={setSearchQuery}
+            placeholder="Search tasks by title, description, category..."
+          />
         </div>
 
         {/* Closest Task */}
@@ -504,7 +550,6 @@ export const DashboardPage = () => {
                   style={{
                     cursor: 'pointer',
                     opacity: isCompleted ? 0.6 : 1,
-                    backgroundColor: isCompleted ? '#f5f5f5' : 'white',
                   }}
                   onClick={() => {
                     const taskDate = task.dueDate ? (typeof task.dueDate === 'string' ? task.dueDate.split('T')[0] : task.dueDate) : '';
@@ -598,7 +643,7 @@ export const DashboardPage = () => {
             </Title>
 
             <Stack gap="md">
-              {sortTasksByCompletion(dateTasks).map((task) => {
+              {sortTasksByCompletion(dateTasks as any[]).map((task) => {
                 const completionPercent = getTaskCompletionPercent(task);
                 const isCompleted = completionPercent === 100;
                 const completedCount = task.subtasks?.filter((s: any) => s.completed).length || 0;
@@ -613,7 +658,6 @@ export const DashboardPage = () => {
                     style={{
                       cursor: 'pointer',
                       opacity: isCompleted ? 0.6 : 1,
-                      backgroundColor: isCompleted ? '#f5f5f5' : 'white',
                     }}
                     onClick={() => {
                       const taskDate = task.dueDate ? (typeof task.dueDate === 'string' ? task.dueDate.split('T')[0] : task.dueDate) : '';

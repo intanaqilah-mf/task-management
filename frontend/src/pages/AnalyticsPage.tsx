@@ -4,11 +4,23 @@ import { useTasks } from '@/hooks/useTasks';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useState } from 'react';
 import { CreateTaskModal } from '@/components/modals/CreateTaskModal';
+import { AnalyticsSkeleton } from '@/components/ui/AnalyticsSkeleton';
+import { DueDateNotifications } from '@/components/notifications/DueDateNotifications';
 import { parseDateInMalaysiaTimezone } from '@/constants/base.constant';
 
 export const AnalyticsPage = () => {
-  const { tasks, createTask } = useTasks();
+  const { tasks, createTask, isLoading } = useTasks();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Show loading skeleton while fetching tasks
+  if (isLoading && tasks.length === 0) {
+    return (
+      <>
+        <AnalyticsSkeleton />
+        <BottomNav onCreateTask={() => setIsCreateModalOpen(true)} />
+      </>
+    );
+  }
 
   // Helper function to calculate task completion percentage
   const getTaskCompletionPercent = (task: any) => {
@@ -122,6 +134,8 @@ export const AnalyticsPage = () => {
 
   return (
     <>
+      <DueDateNotifications />
+
       <Container size="xl" px={{ base: 'xs', sm: 'md', md: 'lg' }} pb={100}>
         <Stack gap="xl" pt="md">
           {/* Header */}

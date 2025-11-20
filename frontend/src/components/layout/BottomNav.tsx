@@ -23,7 +23,6 @@ export const BottomNav = ({ onCreateTask }: BottomNavProps) => {
         right: 0,
         zIndex: 1000,
         borderTop: '1px solid #e9ecef',
-        backgroundColor: 'white',
       }}
     >
       <Group justify="space-evenly" align="center" p="lg" style={{ position: 'relative' }}>

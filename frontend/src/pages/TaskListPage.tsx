@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Container, Title, Tabs, Card, Group, Text, Badge, Stack, ActionIcon, Modal, TextInput, Textarea, Select, Divider, Button, Menu } from '@mantine/core';
-import { IconClock, IconChevronLeft, IconPlus, IconTrash, IconFilter } from '@tabler/icons-react';
+import { IconClock, IconPlus, IconTrash, IconFilter } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { CreateTaskModal } from '@/components/modals/CreateTaskModal';
+import { TaskSearch } from '@/components/search/TaskSearch';
+import { TaskListSkeleton } from '@/components/ui/TaskListSkeleton';
+import { DueDateNotifications } from '@/components/notifications/DueDateNotifications';
 import type { TaskCategory } from '@/types';
 import { BASE_CONSTANTS, parseDateInMalaysiaTimezone } from '@/constants/base.constant';
 
@@ -15,7 +18,7 @@ interface SubTask {
 }
 
 export const TaskListPage = () => {
-  const { tasks, createTask, updateTask, deleteTask } = useTasks();
+  const { tasks, createTask, updateTask, deleteTask, isLoading } = useTasks();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category');
@@ -26,6 +29,17 @@ export const TaskListPage = () => {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Show loading skeleton while fetching tasks
+  if (isLoading && tasks.length === 0) {
+    return (
+      <>
+        <TaskListSkeleton />
+        <BottomNav onCreateTask={() => setIsCreateModalOpen(true)} />
+      </>
+    );
+  }
 
   // Helper function to get priority badge color
   const getPriorityColor = (priority: string) => {
@@ -188,6 +202,23 @@ export const TaskListPage = () => {
     return dueDateStr === targetDateStr;
   });
 
+  // Filter tasks based on search query
+  const filterTasksBySearch = (tasksToFilter: any[]) => {
+    if (!searchQuery.trim()) return tasksToFilter;
+
+    const query = searchQuery.toLowerCase();
+    return tasksToFilter.filter((task) => {
+      const titleMatch = task.title?.toLowerCase().includes(query);
+      const descriptionMatch = task.description?.toLowerCase().includes(query);
+      const categoryMatch = task.category?.toLowerCase().includes(query);
+      const subtasksMatch = task.subtasks?.some((st: any) =>
+        st.title?.toLowerCase().includes(query)
+      );
+
+      return titleMatch || descriptionMatch || categoryMatch || subtasksMatch;
+    });
+  };
+
   // Apply category filter if selected
   let filteredTasks = dateTasks;
   if (category) {
@@ -203,6 +234,9 @@ export const TaskListPage = () => {
   if (selectedStatus) {
     filteredTasks = filteredTasks.filter(t => t.status === selectedStatus);
   }
+
+  // Apply search filter
+  filteredTasks = filterTasksBySearch(filteredTasks);
 
   // Classify today's tasks based on time
   const dueSoon = filteredTasks.filter((t) => {
@@ -422,13 +456,12 @@ export const TaskListPage = () => {
 
   return (
     <>
+      <DueDateNotifications />
+
       <Container size="xl" px="md" pb={100}>
         <Stack gap="xl">
         {/* Header */}
         <Group justify="space-between" align="center">
-          <ActionIcon variant="subtle" size="lg" onClick={() => navigate('/dashboard')}>
-            <IconChevronLeft size={24} />
-          </ActionIcon>
           <Title order={2} size="h2" fw={600}>
             {(() => {
               const today = new Date();
@@ -446,6 +479,10 @@ export const TaskListPage = () => {
               });
             })()}
           </Title>
+        </Group>
+
+        {/* Filter Menu */}
+        <Group justify="flex-end">
           <Menu shadow="md" width={200}>
             <Menu.Target>
               <ActionIcon variant="subtle" size="lg">
@@ -552,6 +589,14 @@ export const TaskListPage = () => {
             );
           })}
         </Group>
+
+        {/* Search Tasks */}
+        <div>
+          <TaskSearch
+            onSearch={setSearchQuery}
+            placeholder="Search tasks by title, description, category..."
+          />
+        </div>
 
         {/* Tabs */}
         <Tabs defaultValue="dueSoon" variant="pills">

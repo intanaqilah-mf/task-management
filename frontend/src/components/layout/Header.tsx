@@ -1,66 +1,90 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useTheme';
-import { useUIStore } from '@/stores/uiStore';
-import { Button } from '@/components/ui/button';
-import { Menu, Sun, Moon, Monitor, LogOut } from 'lucide-react';
+import { ActionIcon, useMantineColorScheme } from '@mantine/core';
+import { IconSun, IconMoon, IconLogout } from '@tabler/icons-react';
 
 export const Header: React.FC = () => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const toggleSidebar = useUIStore((state) => state.toggleSidebar);
-
-  const getThemeIcon = () => {
-    switch (theme) {
-      case 'light':
-        return <Sun className="h-5 w-5" />;
-      case 'dark':
-        return <Moon className="h-5 w-5" />;
-      case 'system':
-        return <Monitor className="h-5 w-5" />;
-    }
-  };
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center justify-between px-4 md:px-6">
+    <header style={{
+      position: 'sticky',
+      top: 0,
+      zIndex: 40,
+      width: '100%',
+      borderBottom: '1px solid var(--mantine-color-default-border)',
+      backgroundColor: 'var(--mantine-color-body)',
+      backdropFilter: 'blur(8px)',
+    }}>
+      <div style={{
+        display: 'flex',
+        height: '64px',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 1rem',
+      }}>
         {/* Left Section */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={toggleSidebar}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Task Manager</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Task Manager</h1>
         </div>
 
         {/* Right Section */}
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {/* Theme Toggle */}
-          <Button variant="ghost" size="icon" onClick={toggleTheme}>
-            {getThemeIcon()}
-          </Button>
+          <ActionIcon
+            variant="subtle"
+            size="lg"
+            onClick={() => toggleColorScheme()}
+            title="Toggle theme"
+          >
+            {colorScheme === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
+          </ActionIcon>
 
-          {/* User Info */}
+          {/* User Avatar with name */}
           {user && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-md bg-secondary text-secondary-foreground">
-              <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.5rem',
+              backgroundColor: 'var(--mantine-color-default-hover)',
+            }}>
+              <div style={{
+                height: '32px',
+                width: '32px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--mantine-color-violet-filled)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 500,
+              }}>
                 {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
               </div>
-              <div className="hidden md:block text-sm">
-                <p className="font-medium">{user.name || 'User'}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+              <div style={{ display: 'none' }} className="sm:block">
+                <p style={{ fontSize: '0.875rem', fontWeight: 500, margin: 0 }}>
+                  {user.name || 'User'}
+                </p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--mantine-color-dimmed)', margin: 0 }}>
+                  {user.email}
+                </p>
               </div>
             </div>
           )}
 
           {/* Logout Button */}
-          <Button variant="ghost" size="icon" onClick={logout}>
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <ActionIcon
+            variant="subtle"
+            size="lg"
+            onClick={logout}
+            title="Logout"
+            color="red"
+          >
+            <IconLogout size={20} />
+          </ActionIcon>
         </div>
       </div>
     </header>

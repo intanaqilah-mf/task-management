@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { AppShell, Burger, Group, Text, NavLink, Avatar, Menu, ActionIcon } from '@mantine/core';
+import { AppShell, Burger, Group, Text, NavLink, Avatar, Menu, ActionIcon, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDashboard, IconLogout, IconUser, IconChevronDown } from '@tabler/icons-react';
+import { IconDashboard, IconLogout, IconUser, IconChevronDown, IconSun, IconMoon } from '@tabler/icons-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export const MainLayout = () => {
   const [opened, { toggle }] = useDisclosure();
   const { isAuthenticated, checkAuth, isLoading, user, logout } = useAuth();
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
   useEffect(() => {
     checkAuth();
@@ -42,7 +43,18 @@ export const MainLayout = () => {
             <Text size="xl" fw={700}>Task Manager</Text>
           </Group>
 
-          <Menu shadow="md" width={200}>
+          <Group gap="xs">
+            {/* Theme Toggle */}
+            <ActionIcon
+              variant="subtle"
+              size="lg"
+              onClick={() => toggleColorScheme()}
+              title="Toggle theme"
+            >
+              {colorScheme === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
+            </ActionIcon>
+
+            <Menu shadow="md" width={200}>
             <Menu.Target>
               <Group style={{ cursor: 'pointer' }}>
                 <Avatar color="blue" radius="xl">
@@ -72,7 +84,8 @@ export const MainLayout = () => {
                 Logout
               </Menu.Item>
             </Menu.Dropdown>
-          </Menu>
+            </Menu>
+          </Group>
         </Group>
       </AppShell.Header>
 

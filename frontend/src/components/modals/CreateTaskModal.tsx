@@ -130,9 +130,13 @@ export const CreateTaskModal = ({ opened, onClose, onSubmit }: CreateTaskModalPr
           value={category}
           onChange={(value) => setCategory(value || '')}
           data={[
-            { value: 'PERSONAL', label: 'Personal' },
-            { value: 'WORK', label: 'Work' },
-            { value: 'SHOPPING', label: 'Business' },
+            { value: 'WORK', label: '💼 Work' },
+            { value: 'PERSONAL', label: '🏠 Personal' },
+            { value: 'SHOPPING', label: '🛒 Shopping' },
+            { value: 'HEALTH', label: '💊 Health' },
+            { value: 'FINANCE', label: '💰 Finance' },
+            { value: 'EDUCATION', label: '📚 Education' },
+            { value: 'OTHER', label: '📌 Other' },
           ]}
           styles={{
             label: { fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' },
