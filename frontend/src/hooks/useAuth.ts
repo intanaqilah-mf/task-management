@@ -46,9 +46,10 @@ export const useAuth = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      // Clear notification localStorage on logout
+      // Clear notification localStorage AND sessionStorage on logout
       localStorage.removeItem('lastNotificationTime');
       localStorage.removeItem('overdueTaskIndex');
+      sessionStorage.removeItem('notificationsShownThisSession');
       addToast({
         type: 'success',
         message: 'Logged out successfully',

@@ -55,6 +55,11 @@ export const authService = {
       // Always clear local storage, even if API call fails
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);
+
+      // Clear notification storage
+      localStorage.removeItem('lastNotificationTime');
+      localStorage.removeItem('overdueTaskIndex');
+      sessionStorage.removeItem('notificationsShownThisSession');
     }
   },
 

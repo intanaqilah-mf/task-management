@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Notification, Text, Stack } from '@mantine/core';
 import { IconClock, IconAlertCircle, IconX } from '@tabler/icons-react';
 import { useTasks } from '@/hooks/useTasks';
@@ -15,15 +15,28 @@ interface NotificationItem {
 
 const NOTIFICATION_KEY = 'lastNotificationTime';
 const OVERDUE_INDEX_KEY = 'overdueTaskIndex';
+const SESSION_SHOWN_KEY = 'notificationsShownThisSession';
 
 export const DueDateNotifications = () => {
-  const { tasks } = useTasks();
+  const { tasks, isLoading } = useTasks();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const hasShownInitialNotifications = useRef(false);
 
   useEffect(() => {
+    // Don't do anything if tasks are still loading
+    if (isLoading) {
+      return;
+    }
+
+    // Don't process if we have no tasks yet (initial load)
+    if (tasks.length === 0) {
+      return;
+    }
+
     const now = new Date();
     const lastNotificationTime = localStorage.getItem(NOTIFICATION_KEY);
-    const isFirstLoad = !lastNotificationTime;
+    const sessionShown = sessionStorage.getItem(SESSION_SHOWN_KEY);
+    const isFirstLoadAfterLogin = !lastNotificationTime && !sessionShown;
 
     // Get all overdue tasks
     const overdueTasks = tasks.filter((task) => {
@@ -43,8 +56,9 @@ export const DueDateNotifications = () => {
       return completionPercent !== 100 && timeDiff < 0;
     });
 
-    // On first load (login), show ALL notifications once (overdue, due soon, upcoming)
-    if (isFirstLoad) {
+    // On first load after login (localStorage was cleared on logout),
+    // show ALL notifications once (overdue, due soon, upcoming)
+    if (isFirstLoadAfterLogin && !hasShownInitialNotifications.current) {
       const newNotifications: NotificationItem[] = [];
 
       tasks.forEach((task) => {
@@ -67,7 +81,7 @@ export const DueDateNotifications = () => {
         // Overdue tasks
         if (timeDiff < 0) {
           newNotifications.push({
-            id: Date.now() + task.id,
+            id: Date.now() + task.id + Math.random(),
             taskId: task.id,
             title: 'Overdue Task',
             message: `"${task.title}" is overdue!`,
@@ -78,7 +92,7 @@ export const DueDateNotifications = () => {
         // Due within 24 hours
         else if (hoursDiff <= 24 && hoursDiff > 0) {
           newNotifications.push({
-            id: Date.now() + task.id,
+            id: Date.now() + task.id + Math.random(),
             taskId: task.id,
             title: 'Due Soon',
             message: `"${task.title}" is due in ${Math.round(hoursDiff)} hour${Math.round(hoursDiff) !== 1 ? 's' : ''}`,
@@ -89,7 +103,7 @@ export const DueDateNotifications = () => {
         // Due within 3 days
         else if (daysDiff <= 3 && daysDiff > 1) {
           newNotifications.push({
-            id: Date.now() + task.id,
+            id: Date.now() + task.id + Math.random(),
             taskId: task.id,
             title: 'Upcoming Deadline',
             message: `"${task.title}" is due in ${Math.ceil(daysDiff)} day${Math.ceil(daysDiff) !== 1 ? 's' : ''}`,
@@ -101,6 +115,8 @@ export const DueDateNotifications = () => {
 
       setNotifications(newNotifications);
       localStorage.setItem(NOTIFICATION_KEY, now.getTime().toString());
+      sessionStorage.setItem(SESSION_SHOWN_KEY, 'true');
+      hasShownInitialNotifications.current = true;
       return;
     }
 
@@ -142,13 +158,15 @@ export const DueDateNotifications = () => {
     const interval = setInterval(showNextOverdueTask, 60000); // Check every minute
 
     return () => clearInterval(interval);
-  }, [tasks]);
+  }, [tasks, isLoading]);
 
   const handleClose = (id: number) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
-  if (notifications.length === 0) return null;
+  if (notifications.length === 0) {
+    return null;
+  }
 
   return (
     <div
